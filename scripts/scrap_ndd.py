@@ -3,15 +3,6 @@ import pandas as pd
 import io
 import os
 
-st.set_page_config(layout="wide", page_title="Classification de Domaines")
-
-def scrap_ndd(domain, categories):
-    for category, keywords in categories.items():
-        for keyword in keywords:
-            if keyword in domain.lower():
-                return category
-    return 'NON UTILISÉ'
-
 def app():
     st.title("Classification de Domaines")
 
@@ -37,6 +28,13 @@ def app():
         'TOURISME': ['travel', 'tourism', 'holiday', 'vacation', 'bon plan', 'camping', 'croisiere', 'location', 'tourisme', 'vacance', 'voyage'],
         'VEHICULE': ['vehicle', 'car', 'auto', 'bike', 'bicycle', 'moto', 'produits', 'securite', 'voiture']
     }
+
+    def classify_domain(domain, categories):
+        for category, keywords in categories.items():
+            for keyword in keywords:
+                if keyword in domain.lower():
+                    return category
+        return 'NON UTILISÉ'
 
     # Mise à jour des mots-clés en fonction des ajustements
     adjustments_file = 'domaines_classes_mises_a_jour.xlsx'
