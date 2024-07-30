@@ -1,9 +1,9 @@
 import streamlit as st
-from scripts import "nom_du_script"
+from scripts import nom_du_script
 
 Configuration des pages
 PAGES = {
-    "Le Nom Que Tu Veux Donner à ton Script": "nom_du_script,
+    "Le Nom Que Tu Veux Donner à ton Script": nom_du_script,
 }
 
 Titre principal
