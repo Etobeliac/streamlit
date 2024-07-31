@@ -20,9 +20,7 @@ if selected_script:
         script_content = file.read()
     st.subheader(f"Content of {selected_script}")
     st.code(script_content, language='python')
-else:
-    st.subheader("Select a script to view its content")
 
 # Ajouter un bouton pour exécuter le script classifier.py
-if st.button("Run classifier.py"):
+if selected_script == "classifier.py" and st.button("Run classifier.py"):
     os.system('streamlit run scripts/classifier.py')
