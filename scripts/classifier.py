@@ -1,24 +1,7 @@
 import streamlit as st
 import pandas as pd
-import os
 
-# Chemin du fichier de thématiques
-THEMATIQUE_FILE_PATH = 'TEMPLATE THEMATIQUES.xlsx'
-# Chargement des thématiques
-df_template = pd.read_excel(THEMATIQUE_FILE_PATH)
-
-# Extraire les thématiques et les menus
-thematique_dict = {}
-current_thematique = None
-
-for index, row in df_template.iterrows():
-    if pd.notna(row['THEMATIQUE FR']):
-        current_thematique = row['THEMATIQUE FR']
-        thematique_dict[current_thematique] = []
-    if pd.notna(row['MENU FR']) and current_thematique:
-        thematique_dict[current_thematique].append(row['MENU FR'])
-
-# Ajout des sous-catégories comme mots-clés
+# Définir les thématiques et leurs mots-clés
 thematique_dict = {
     'ANIMAUX': ['animal', 'pet', 'zoo', 'farm', 'deer', 'chiens', 'chats', 'animaux'],
     'CUISINE': ['cook', 'recipe', 'cuisine', 'food', 'bon plan', 'equipement', 'minceur', 'produit', 'restaurant'],
@@ -32,16 +15,6 @@ thematique_dict = {
     'TOURISME': ['travel', 'tourism', 'holiday', 'vacation', 'bon plan', 'camping', 'croisiere', 'location', 'tourisme', 'vacance', 'voyage'],
     'VEHICULE': ['vehicle', 'car', 'auto', 'bike', 'bicycle', 'moto', 'produits', 'securite', 'voiture']
 }
-
-# Ajustements
-adjustments_file_path = 'domaines_classes_mises_a_jour.xlsx'
-if os.path.exists(adjustments_file_path):
-    adjustments = pd.read_excel(adjustments_file_path)[['Domain', 'Ce que j\'aurais mis ']].dropna()
-    for index, row in adjustments.iterrows():
-        domain = row['Domain']
-        new_category = row['Ce que j\'aurais mis ']
-        if new_category in thematique_dict:
-            thematique_dict[new_category].append(domain.split('.')[0].replace('-', '').lower())
 
 # Fonction pour classifier un domaine
 def classify_domain(domain, categories):
