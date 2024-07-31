@@ -18,6 +18,11 @@ thematique_dict = {
     'VEHICULE': ['vehicle', 'car', 'auto', 'bike', 'bicycle', 'moto', 'produits', 'securite', 'voiture']
 }
 
+# Mots clés pour exclure des domaines
+excluded_keywords = ['religion', 'sex', 'voyance', 'escort', 'jesus']
+excluded_regex = re.compile(r'\b(?:%s)\b' % '|'.join(map(re.escape, excluded_keywords)), re.IGNORECASE)
+year_regex = re.compile(r'\b(19[0-9]{2}|20[0-9]{2})\b')
+
 # Fonction pour déterminer la langue basée sur le TLD
 def determine_language(domain):
     tld = domain.split('.')[-1]
@@ -62,12 +67,9 @@ def main():
             # Classifier les domaines
             classified_domains = []
             excluded_domains = []
-            sensitive_keywords = ['religion', 'sex', 'voyance', 'escort']
-            sensitive_regex = re.compile(r'\b(?:%s)\b' % '|'.join(map(re.escape, sensitive_keywords)), re.IGNORECASE)
-            year_regex = re.compile(r'\b(19[0-9]{2}|20[0-9]{2})\b')
             
             for domain in domaines:
-                if sensitive_regex.search(domain) or year_regex.search(domain):
+                if excluded_regex.search(domain) or year_regex.search(domain):
                     excluded_domains.append(domain)
                 else:
                     category = classify_domain(domain, thematique_dict)
