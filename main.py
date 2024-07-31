@@ -1,12 +1,12 @@
 import streamlit as st
-from scripts import scrap_ndd  # Assurez-vous que ce chemin est correct et que le module existe
+from scripts.scrap_ndd import app  # Import direct de la fonction app
 
 # Configuration des pages
 st.set_page_config(layout="wide", page_title="Scripts Linkuma")
 
 # Définition des pages
 PAGES = {
-    "Scrap NDD": scrap_ndd,
+    "Scrap NDD": app,
 }
 
 # Titre principal
@@ -18,7 +18,4 @@ selection = st.sidebar.radio("Choisissez un script", list(PAGES.keys()))
 
 # Affichage du script sélectionné
 page = PAGES[selection]
-if hasattr(page, 'app'):
-    page.app()
-else:
-    st.error("La fonction 'app' n'existe pas dans le module sélectionné.")
+page()
