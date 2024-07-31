@@ -1,22 +1,21 @@
 import streamlit as st
 import pandas as pd
+import re
 
-# Définir les thématiques et leurs mots-clés
-thematique_dict = {
-    'ANIMAUX': ['animal', 'pet', 'zoo', 'farm', 'deer', 'chiens', 'chats', 'animaux'],
-    'CUISINE': ['cook', 'recipe', 'cuisine', 'food', 'bon plan', 'equipement', 'minceur', 'produit', 'restaurant'],
-    'ENTREPRISE': ['business', 'enterprise', 'company', 'corporate', 'formation', 'juridique', 'management', 'marketing', 'services'],
-    'FINANCE / IMMOBILIER': ['finance', 'realestate', 'investment', 'property', 'assurance', 'banque', 'credits', 'immobilier'],
-    'INFORMATIQUE': ['tech', 'computer', 'software', 'IT', 'high tech', 'internet', 'jeux-video', 'marketing', 'materiel', 'smartphones'],
-    'MAISON': ['home', 'house', 'garden', 'interior', 'deco', 'demenagement', 'equipement', 'immo', 'jardin', 'maison', 'piscine', 'travaux'],
-    'MODE / FEMME': ['fashion', 'beauty', 'cosmetics', 'woman', 'beaute', 'bien-etre', 'lifestyle', 'mode', 'shopping'],
-    'SANTE': ['health', 'fitness', 'wellness', 'medical', 'hospital', 'grossesse', 'maladie', 'minceur', 'professionnels', 'sante', 'seniors'],
-    'SPORT': ['sport', 'fitness', 'football', 'soccer', 'basketball', 'tennis', 'autre sport', 'basket', 'combat', 'foot', 'musculation', 'velo'],
-    'TOURISME': ['travel', 'tourism', 'holiday', 'vacation', 'bon plan', 'camping', 'croisiere', 'location', 'tourisme', 'vacance', 'voyage'],
-    'VEHICULE': ['vehicle', 'car', 'auto', 'bike', 'bicycle', 'moto', 'produits', 'securite', 'voiture']
-}
+# Charger les thématiques depuis le fichier Excel
+def load_thematiques(file_path):
+    df_template = pd.read_excel(file_path)
+    thematique_dict = {}
+    current_thematique = None
+    for index, row in df_template.iterrows():
+        if pd.notna(row['THEMATIQUE FR']):
+            current_thematique = row['THEMATIQUE FR']
+            thematique_dict[current_thematique] = []
+        if pd.notna(row['MENU FR']) and current_thematique:
+            thematique_dict[current_thematique].append(row['MENU FR'])
+    return thematique_dict
 
-# Fonction pour classifier un domaine
+# Classifier un domaine par thématique
 def classify_domain(domain, categories):
     for category, keywords in categories.items():
         for keyword in keywords:
@@ -24,52 +23,62 @@ def classify_domain(domain, categories):
                 return category
     return 'NON UTILISÉ'
 
-# Fonction pour vérifier les domaines à exclure
-def is_excluded(domain):
-    exclusions = ['religious', 'sex', 'voyance', 'escort']
-    if any(exclusion in domain.lower() for exclusion in exclusions):
-        return True
-    if any(char.isdigit() for char in domain):
-        return True
-    return False
+# Fonction principale pour le script Streamlit
+def main():
+    st.title("Classification des noms de domaine par thématique")
 
-# Interface Streamlit
-st.title("Classification de Noms de Domaine")
-
-domains_input = st.text_area("Entrez les noms de domaine séparés par des virgules")
-domains_list = [domain.strip() for domain in domains_input.split(",") if domain.strip()]
-
-if st.button("Classifier"):
-    classified_domains = []
-    excluded_domains = []
+    # Charger les thématiques
+    thematique_file_path = 'TEMPLATE THEMATIQUES.xlsx'
+    thematiques = load_thematiques(thematique_file_path)
     
-    for domain in domains_list:
-        if is_excluded(domain):
-            excluded_domains.append(domain)
+    # Ajustements et exclusion de certaines thématiques
+    sensitive_keywords = ['religion', 'sex', 'voyance', 'escort']
+    sensitive_regex = re.compile(r'\b(?:%s)\b' % '|'.join(map(re.escape, sensitive_keywords)), re.IGNORECASE)
+    year_regex = re.compile(r'\b(19[0-9]{2}|20[0-9]{2})\b')
+
+    # Saisie des noms de domaine
+    domaines_input = st.text_area("Entrez les noms de domaine (un par ligne)")
+
+    if st.button("Analyser"):
+        if domaines_input:
+            domaines = [domain.strip() for domain in domaines_input.split('\n') if domain.strip()]
+
+            # Classifier les domaines
+            classified_domains = []
+            excluded_domains = []
+            for domain in domaines:
+                if sensitive_regex.search(domain) or year_regex.search(domain):
+                    excluded_domains.append(domain)
+                else:
+                    category = classify_domain(domain, thematiques)
+                    classified_domains.append((domain, category))
+            
+            # Créer le DataFrame pour les résultats
+            df = pd.DataFrame(classified_domains, columns=['Domain', 'Category'])
+            df_excluded = pd.DataFrame(excluded_domains, columns=['Domain'])
+            df_excluded['Category'] = 'EXCLU'
+            
+            # Afficher la prévisualisation des résultats
+            st.subheader("Prévisualisation des résultats")
+            st.write(df)
+            st.write(df_excluded)
+            
+            # Ajouter une option pour télécharger les résultats
+            def convert_df_to_excel(df1, df2):
+                output = pd.ExcelWriter('domaines_classes_resultats.xlsx', engine='xlsxwriter')
+                df1.to_excel(output, index=False, sheet_name='Classified')
+                df2.to_excel(output, index=False, sheet_name='Excluded')
+                output.save()
+                return output
+
+            st.download_button(
+                label="Télécharger les résultats en Excel",
+                data=convert_df_to_excel(df, df_excluded).getvalue(),
+                file_name="domaines_classes_resultats.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
         else:
-            category = classify_domain(domain, thematique_dict)
-            classified_domains.append((domain, category))
+            st.warning("Veuillez entrer au moins un nom de domaine.")
 
-    df_classified = pd.DataFrame(classified_domains, columns=['Domain', 'Category'])
-    df_excluded = pd.DataFrame(excluded_domains, columns=['Domain'])
-    
-    st.subheader("Prévisualisation avant classification")
-    st.write(df_classified)
-    
-    st.subheader("Domaines exclus")
-    st.write(df_excluded)
-    
-    # Préparer le fichier Excel pour le téléchargement
-    output_file = 'domaines_classes_resultats.xlsx'
-    with pd.ExcelWriter(output_file) as writer:
-        df_classified.to_excel(writer, sheet_name='Classified', index=False)
-        df_excluded.to_excel(writer, sheet_name='Excluded', index=False)
-    
-    st.success(f"Le fichier a été sauvegardé sous le nom : {output_file}")
-    with open(output_file, 'rb') as file:
-        st.download_button(
-            label="Télécharger le fichier Excel",
-            data=file,
-            file_name=output_file,
-            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
+if __name__ == "__main__":
+    main()
