@@ -9,12 +9,12 @@ thematique_dict = {
     'CUISINE': ['cook', 'recipe', 'cuisine', 'food', 'bon plan', 'equipement', 'minceur', 'produit', 'restaurant'],
     'ENTREPRISE': ['business', 'enterprise', 'company', 'corporate', 'formation', 'juridique', 'management', 'marketing', 'services'],
     'FINANCE / IMMOBILIER': ['finance', 'realestate', 'investment', 'property', 'assurance', 'banque', 'credits', 'immobilier'],
-    'INFORMATIQUE': ['tech', 'computer', 'software', 'IT', 'high tech', 'internet', 'jeux-video', 'marketing', 'materiel', 'smartphones', 'file'],
+    'INFORMATIQUE': ['tech', 'computer', 'software', 'IT', 'high tech', 'internet', 'jeux-video', 'marketing', 'materiel', 'smartphones'],
     'MAISON': ['home', 'house', 'garden', 'interior', 'deco', 'demenagement', 'equipement', 'immo', 'jardin', 'maison', 'piscine', 'travaux'],
     'MODE / FEMME': ['fashion', 'beauty', 'cosmetics', 'woman', 'beaute', 'bien-etre', 'lifestyle', 'mode', 'shopping'],
     'SANTE': ['health', 'fitness', 'wellness', 'medical', 'hospital', 'grossesse', 'maladie', 'minceur', 'professionnels', 'sante', 'seniors'],
     'SPORT': ['sport', 'fitness', 'football', 'soccer', 'basketball', 'tennis', 'autre sport', 'basket', 'combat', 'foot', 'musculation', 'velo'],
-    'TOURISME': ['travel', 'tourism', 'holiday', 'vacation', 'bon plan', 'camping', 'croisiere', 'location', 'tourisme', 'vacance', 'voyage', 'chamber'],
+    'TOURISME': ['travel', 'tourism', 'holiday', 'vacation', 'bon plan', 'camping', 'croisiere', 'location', 'tourisme', 'vacance', 'voyage'],
     'VEHICULE': ['vehicle', 'car', 'auto', 'bike', 'bicycle', 'moto', 'produits', 'securite', 'voiture']
 }
 
@@ -23,22 +23,15 @@ excluded_keywords = ['religion', 'sex', 'voyance', 'escort', 'jesus']
 excluded_regex = re.compile(r'\b(?:%s)\b' % '|'.join(map(re.escape, excluded_keywords)), re.IGNORECASE)
 year_regex = re.compile(r'\b(19[0-9]{2}|20[0-9]{2})\b')
 
-# Mots-clés pour déterminer les langues
-language_keywords = {
-    'EN': ['the', 'and', 'for', 'with', 'without', 'file', 'recipe', 'travel', 'health', 'beauty', 'fashion', 'sport', 'vehicle'],
-    'FR': ['le', 'la', 'les', 'et', 'pour', 'sans', 'fichier', 'recette', 'voyage', 'santé', 'beauté', 'mode', 'sport', 'véhicule'],
-    'DE': ['der', 'die', 'das', 'und', 'für', 'mit', 'ohne', 'datei', 'rezept', 'reise', 'gesundheit', 'schönheit', 'mode', 'sport', 'fahrzeug'],
-    'ES': ['el', 'la', 'los', 'y', 'para', 'sin', 'archivo', 'receta', 'viaje', 'salud', 'belleza', 'moda', 'deporte', 'vehículo'],
-    'IT': ['il', 'la', 'i', 'e', 'per', 'senza', 'file', 'ricetta', 'viaggio', 'salute', 'bellezza', 'moda', 'sport', 'veicolo'],
-    'RU': ['и', 'для', 'без', 'файл', 'рецепт', 'путешествие', 'здоровье', 'красота', 'мода', 'спорт', 'автомобиль'],
-    'CN': ['和', '文件', '配方', '旅行', '健康', '美容', '时尚', '运动', '车辆']
-}
-
-# Fonction pour déterminer la langue basée sur le TLD et les mots-clés
+# Fonction pour déterminer la langue basée sur le TLD
 def determine_language(domain):
     tld = domain.split('.')[-1]
     if tld == 'fr':
         return 'FR'
+    elif tld == 'com':
+        return 'EN'
+    elif tld == 'uk':
+        return 'EN'
     elif tld == 'de':
         return 'DE'
     elif tld == 'es':
@@ -50,20 +43,7 @@ def determine_language(domain):
     elif tld == 'cn':
         return 'CN'
     else:
-        # Vérifier les mots-clés dans le nom de domaine
-        for lang, keywords in language_keywords.items():
-            for keyword in keywords:
-                if keyword in domain.lower():
-                    return lang
-        return ''  # Retourne une chaîne vide si aucune langue n'est déterminée
-
-# Déterminer si un domaine contient un nom propre basé sur un ensemble de règles simples
-def is_name(domain):
-    parts = domain.split('.')
-    name_patterns = re.compile(r'^[a-zA-Z]+(-[a-zA-Z]+)*$', re.IGNORECASE)
-    if name_patterns.match(parts[0]):
-        return True
-    return False
+        return 'EN'  # Par défaut, on considère que c'est en anglais
 
 # Classifier un domaine par thématique
 def classify_domain(domain, categories):
@@ -89,14 +69,15 @@ def main():
             excluded_and_non_utilise_domains = []
             
             for domain in domaines:
-                category = classify_domain(domain, thematique_dict)
-                language = determine_language(domain)
-                
-                # Appliquer les règles extraites des commentaires
-                if any(kw in domain for kw in excluded_keywords) or year_regex.search(domain) or is_name(domain):
-                    excluded_and_non_utilise_domains.append((domain, 'EXCLU', language))
+                if excluded_regex.search(domain) or year_regex.search(domain):
+                    excluded_and_non_utilise_domains.append((domain, 'EXCLU', determine_language(domain)))
                 else:
-                    classified_domains.append((domain, category, language))
+                    category = classify_domain(domain, thematique_dict)
+                    language = determine_language(domain)
+                    if category == 'NON UTILISÉ':
+                        excluded_and_non_utilise_domains.append((domain, category, language))
+                    else:
+                        classified_domains.append((domain, category, language))
             
             # Créer le DataFrame pour les résultats
             df_classified = pd.DataFrame(classified_domains, columns=['Domain', 'Category', 'Language'])
