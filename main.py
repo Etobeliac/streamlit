@@ -77,4 +77,8 @@ def main():
                 file_name="domaines_classes_resultats.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
-        else
+        else:
+            st.warning("Veuillez entrer au moins un nom de domaine.")
+
+if __name__ == "__main__":
+    main()
