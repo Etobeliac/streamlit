@@ -59,16 +59,17 @@ if st.button("Classifier"):
     st.subheader("Domaines exclus")
     st.write(df_excluded)
     
-    if st.button("Télécharger le résultat"):
-        output_file = 'domaines_classes_resultats.xlsx'
-        with pd.ExcelWriter(output_file) as writer:
-            df_classified.to_excel(writer, sheet_name='Classified', index=False)
-            df_excluded.to_excel(writer, sheet_name='Excluded', index=False)
-        
-        st.success(f"Le fichier a été sauvegardé sous le nom : {output_file}")
+    # Préparer le fichier Excel pour le téléchargement
+    output_file = 'domaines_classes_resultats.xlsx'
+    with pd.ExcelWriter(output_file) as writer:
+        df_classified.to_excel(writer, sheet_name='Classified', index=False)
+        df_excluded.to_excel(writer, sheet_name='Excluded', index=False)
+    
+    st.success(f"Le fichier a été sauvegardé sous le nom : {output_file}")
+    with open(output_file, 'rb') as file:
         st.download_button(
             label="Télécharger le fichier Excel",
-            data=open(output_file, 'rb').read(),
+            data=file,
             file_name=output_file,
             mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
