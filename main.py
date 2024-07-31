@@ -67,7 +67,7 @@ def main():
                 writer = pd.ExcelWriter(output, engine='xlsxwriter')
                 df1.to_excel(writer, index=False, sheet_name='Classified')
                 df2.to_excel(writer, index=False, sheet_name='Excluded')
-                writer.save()
+                writer.close()
                 output.seek(0)
                 return output
 
