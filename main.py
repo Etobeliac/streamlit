@@ -118,10 +118,17 @@ def main():
             classified_domains = []
             excluded_and_non_utilise_domains = []
             
+            # Assurez-vous que le fichier de thématiques est correctement chargé ici
+            # Par exemple, charger le DataFrame à partir d'un fichier Excel (le fichier doit être accessible)
+            try:
+                df = pd.read_excel('/mnt/data/entrainement Script python classification.xlsx', sheet_name='Feuil1')
+            except Exception as e:
+                st.error(f"Erreur lors du chargement du fichier Excel : {e}")
+                return
+            
             for domain in domaines:
                 category = classify_domain(domain, thematique_dict)
                 language = determine_language(domain)
-                # Analyser le commentaire pour ajuster la classification
                 comment = ''
                 for index, row in df.iterrows():
                     if domain == row['Domain']:
@@ -137,4 +144,30 @@ def main():
             df_classified = pd.DataFrame(classified_domains, columns=['Domain', 'Category', 'Language'])
             df_excluded_and_non_utilise = pd.DataFrame(excluded_and_non_utilise_domains, columns=['Domain', 'Category', 'Language'])
             
-            # Afficher la prévisual
+            # Afficher la prévisualisation des résultats
+            st.subheader("Prévisualisation des résultats")
+            st.write(df_classified)
+            st.write(df_excluded_and_non_utilise)
+            
+            # Ajouter une option pour télécharger les résultats
+            def convert_df_to_excel(df1, df2):
+                output = io.BytesIO()
+                writer = pd.ExcelWriter(output, engine='xlsxwriter')
+                df1.to_excel(writer, index=False, sheet_name='Classified')
+                df2.to_excel(writer, index=False, sheet_name='Excluded and Non Utilisé')
+                writer.close()
+                output.seek(0)
+                return output
+
+            st.download_button(
+                label="Télécharger les résultats en Excel",
+                data=convert_df_to_excel(df_classified, df_excluded_and_non_utilise),
+                file_name="domaines_classes_resultats.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        else:
+            st.warning("Veuillez entrer au moins un nom de domaine.")
+
+if __name__ == "__main__":
+    main()
+
