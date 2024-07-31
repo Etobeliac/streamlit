@@ -57,36 +57,6 @@ def determine_language(domain):
                     return lang
         return ''  # Retourne une chaîne vide si aucune langue n'est déterminée
 
-# Fonction pour analyser chaque commentaire et extraire des règles
-def analyze_comment(domain, category, comment):
-    if pd.notna(comment):
-        if 'aucun sens' in comment.lower():
-            return (domain, 'EXCLU', 'aucun sens')
-        elif 'nom et prénom' in comment.lower():
-            return (domain, 'EXCLU', 'nom et prénom')
-        elif 'ville trop niché' in comment.lower():
-            return (domain, 'EXCLU', 'ville trop niché')
-        elif 'file' in comment.lower():
-            return (domain, 'INFORMATIQUE', comment)
-        elif 'chamber' in comment.lower():
-            return (domain, 'TOURISME', comment)
-        elif 'tech' in comment.lower() or 'computer' in comment.lower() or 'software' in comment.lower():
-            return (domain, 'INFORMATIQUE', comment)
-        elif 'food' in comment.lower() or 'recipe' in comment.lower():
-            return (domain, 'CUISINE', comment)
-        elif 'health' in comment.lower() or 'fitness' in comment.lower():
-            return (domain, 'SANTE', comment)
-        elif 'fashion' in comment.lower() or 'beauty' in comment.lower():
-            return (domain, 'MODE / FEMME', comment)
-        elif 'sport' in comment.lower() or 'fitness' in comment.lower():
-            return (domain, 'SPORT', comment)
-        elif 'vehicle' in comment.lower() or 'car' in comment.lower():
-            return (domain, 'VEHICULE', comment)
-        else:
-            return (domain, category, comment)
-    else:
-        return (domain, category, '')
-
 # Déterminer si un domaine contient un nom propre basé sur un ensemble de règles simples
 def is_name(domain):
     parts = domain.split('.')
@@ -121,8 +91,11 @@ def main():
             for domain in domaines:
                 category = classify_domain(domain, thematique_dict)
                 language = determine_language(domain)
+                
+                # Appliquer les règles extraites des commentaires
                 domain_info = analyze_comment(domain, category, '')
-                if domain_info[1] == 'EXCLU' or is_name(domain):
+                if domain_info[1] == 'EXCLU'
+                or is_name(domain):
                     excluded_and_non_utilise_domains.append((domain_info[0], domain_info[1], language))
                 else:
                     classified_domains.append((domain_info[0], domain_info[1], language))
