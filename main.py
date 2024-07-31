@@ -7,8 +7,8 @@ SCRIPTS_FOLDER = 'scripts'
 # Titre de l'application
 st.title("Scripts Viewer")
 
-# Lister les fichiers dans le dossier des scripts
-scripts = os.listdir(SCRIPTS_FOLDER)
+# Lister les fichiers dans le dossier des scripts et filtrer uniquement les fichiers
+scripts = [f for f in os.listdir(SCRIPTS_FOLDER) if os.path.isfile(os.path.join(SCRIPTS_FOLDER, f))]
 
 # Afficher la liste des scripts à gauche
 selected_script = st.sidebar.selectbox("Select a script", scripts)
