@@ -6,7 +6,7 @@ import os
 def app():
     st.title("Classification de Domaines")
 
-    # Vérification de l'existence du fichier de thématiques
+    # Lecture du fichier de thématiques
     file_path = 'TEMPLATE THEMATIQUES.xlsx'
     if not os.path.exists(file_path):
         st.error(f"Le fichier {file_path} n'existe pas. Veuillez le placer dans le même répertoire que le script.")
@@ -88,6 +88,3 @@ def app():
                 file_name="domaines_classes_mises_a_jour.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
-
-if __name__ == "__main__":
-    app()
