@@ -94,8 +94,7 @@ def main():
                 
                 # Appliquer les règles extraites des commentaires
                 domain_info = analyze_comment(domain, category, '')
-                if domain_info[1] == 'EXCLU'
-                or is_name(domain):
+                if domain_info[1] == 'EXCLU'  or is_name(domain):
                     excluded_and_non_utilise_domains.append((domain_info[0], domain_info[1], language))
                 else:
                     classified_domains.append((domain_info[0], domain_info[1], language))
