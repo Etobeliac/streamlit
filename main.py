@@ -2,99 +2,100 @@ import streamlit as st
 import pandas as pd
 import re
 import io
+import string
 
 # Dictionnaire des thématiques et mots-clés
 thematique_dict = {
-    'ANIMAUX': ['animal', 'pet', 'zoo', 'farm', 'deer', 'chiens', 'chats', 'animaux'],
+    'ANIMAUX': ['animal', 'pet', 'zoo', 'farm', 'deer', 'chiens', 'chats', 'animaux', 'terriers'],
     'CUISINE': ['cook', 'recipe', 'cuisine', 'food', 'bon plan', 'equipement', 'minceur', 'produit', 'restaurant'],
     'ENTREPRISE': ['business', 'enterprise', 'company', 'corporate', 'formation', 'juridique', 'management', 'marketing', 'services'],
-    'FINANCE / IMMOBILIER': ['finance', 'realestate', 'investment', 'property', 'assurance', 'banque', 'credits', 'immobilier'],
-    'INFORMATIQUE': ['tech', 'computer', 'software', 'IT', 'high tech', 'internet', 'jeux-video', 'marketing', 'materiel', 'smartphones'],
-    'MAISON': ['home', 'house', 'garden', 'interior', 'deco', 'demenagement', 'equipement', 'immo', 'jardin', 'maison', 'piscine', 'travaux'],
+    'FINANCE / IMMOBILIER': ['finance', 'realestate', 'investment', 'property', 'assurance', 'banque', 'credits', 'immobilier', 'fortune', 'credit'],
+    'INFORMATIQUE': ['tech', 'computer', 'software', 'IT', 'high tech', 'internet', 'jeux-video', 'marketing', 'materiel', 'smartphones', 'research', 'graphics', 'solution'],
+    'MAISON': ['home', 'house', 'garden', 'interior', 'deco', 'demenagement', 'equipement', 'immo', 'jardin', 'maison', 'piscine', 'travaux', 'solar', 'energy'],
     'MODE / FEMME': ['fashion', 'beauty', 'cosmetics', 'woman', 'beaute', 'bien-etre', 'lifestyle', 'mode', 'shopping'],
-    'SANTE': ['health', 'fitness', 'wellness', 'medical', 'hospital', 'grossesse', 'maladie', 'minceur', 'professionnels', 'sante', 'seniors'],
-    'SPORT': ['sport', 'fitness', 'football', 'soccer', 'basketball', 'tennis', 'autre sport', 'basket', 'combat', 'foot', 'musculation', 'velo'],
-    'TOURISME': ['travel', 'tourism', 'holiday', 'vacation', 'bon plan', 'camping', 'croisiere', 'location', 'tourisme', 'vacance', 'voyage'],
-    'VEHICULE': ['vehicle', 'car', 'auto', 'bike', 'bicycle', 'moto', 'produits', 'securite', 'voiture']
+    'SANTE': ['health', 'fitness', 'wellness', 'medical', 'hospital', 'grossesse', 'maladie', 'minceur', 'professionnels', 'sante', 'seniors', 'baby'],
+    'SPORT': ['sport', 'fitness', 'football', 'soccer', 'basketball', 'tennis', 'autre sport', 'basket', 'combat', 'foot', 'musculation', 'velo', 'cricket'],
+    'TOURISME': ['travel', 'tourism', 'holiday', 'vacation', 'bon plan', 'camping', 'croisiere', 'location', 'tourisme', 'vacance', 'voyage', 'sauna', 'expat'],
+    'VEHICULE': ['vehicle', 'car', 'auto', 'bike', 'bicycle', 'moto', 'produits', 'securite', 'voiture', 'formula']
 }
 
 # Mots clés pour exclure des domaines
-excluded_keywords = ['religion', 'sex', 'voyance', 'escort', 'jesus']
+excluded_keywords = ['religion', 'sex', 'voyance', 'escort', 'jesus', 'porn']
 excluded_regex = re.compile(r'\b(?:%s)\b' % '|'.join(map(re.escape, excluded_keywords)), re.IGNORECASE)
 year_regex = re.compile(r'\b(19[0-9]{2}|20[0-9]{2})\b')
+name_regex = re.compile(r'\b[A-Z][a-z]+\s[A-Z][a-z]+\b')
 
-# Fonction pour déterminer la langue basée sur le TLD
 def determine_language(domain):
     tld = domain.split('.')[-1]
-    if tld == 'fr':
-        return 'FR'
-    elif tld == 'com':
-        return 'EN'
-    elif tld == 'uk':
-        return 'EN'
-    elif tld == 'de':
-        return 'DE'
-    elif tld == 'es':
-        return 'ES'
-    elif tld == 'it':
-        return 'IT'
-    elif tld == 'ru':
-        return 'RU'
-    elif tld == 'cn':
-        return 'CN'
-    else:
-        return 'EN'  # Par défaut, on considère que c'est en anglais
+    tld_to_lang = {
+        'fr': 'FR', 'com': 'EN', 'uk': 'EN', 'de': 'DE', 'es': 'ES',
+        'it': 'IT', 'ru': 'RU', 'cn': 'CN', 'net': 'EN', 'org': 'EN'
+    }
+    return tld_to_lang.get(tld, 'EN')
 
-# Classifier un domaine par thématique
 def classify_domain(domain, categories):
+    domain_lower = domain.lower()
     for category, keywords in categories.items():
         for keyword in keywords:
-            if keyword in domain.lower():
+            if keyword in domain_lower:
                 return category
     return 'NON UTILISÉ'
 
-# Fonction principale pour le script Streamlit
+def is_excluded(domain):
+    if excluded_regex.search(domain) or year_regex.search(domain):
+        return True
+    if name_regex.search(domain):
+        return True
+    if any(word in domain.lower() for word in ['pas cher', 'bas prix']):
+        return True
+    return False
+
+def has_meaning(domain):
+    # Supprime les extensions courantes et les caractères non-alphabétiques
+    clean_domain = re.sub(r'\.(com|net|org|info|biz|fr|de|uk|es|it)$', '', domain.lower())
+    clean_domain = ''.join(char for char in clean_domain if char.isalnum())
+    
+    # Vérifie si le domaine contient au moins un mot anglais de 3 lettres ou plus
+    words = re.findall(r'\b\w{3,}\b', clean_domain)
+    return len(words) > 0
+
 def main():
     st.title("Classification des noms de domaine par thématique")
     
-    # Saisie des noms de domaine
     domaines_input = st.text_area("Entrez les noms de domaine (un par ligne)")
     
     if st.button("Analyser"):
         if domaines_input:
             domaines = [domain.strip() for domain in domaines_input.split('\n') if domain.strip()]
             
-            # Classifier les domaines
             classified_domains = []
             excluded_and_non_utilise_domains = []
             
             for domain in domaines:
-                if excluded_regex.search(domain) or year_regex.search(domain):
+                if is_excluded(domain):
                     excluded_and_non_utilise_domains.append((domain, 'EXCLU', determine_language(domain)))
                 else:
                     category = classify_domain(domain, thematique_dict)
                     language = determine_language(domain)
-                    if category == 'NON UTILISÉ':
+                    if category == 'NON UTILISÉ' and not has_meaning(domain):
+                        excluded_and_non_utilise_domains.append((domain, 'EXCLU (pas de sens)', language))
+                    elif category == 'NON UTILISÉ':
                         excluded_and_non_utilise_domains.append((domain, category, language))
                     else:
                         classified_domains.append((domain, category, language))
             
-            # Créer le DataFrame pour les résultats
             df_classified = pd.DataFrame(classified_domains, columns=['Domain', 'Category', 'Language'])
             df_excluded_and_non_utilise = pd.DataFrame(excluded_and_non_utilise_domains, columns=['Domain', 'Category', 'Language'])
             
-            # Afficher la prévisualisation des résultats
             st.subheader("Prévisualisation des résultats")
             st.write(df_classified)
             st.write(df_excluded_and_non_utilise)
             
-            # Ajouter une option pour télécharger les résultats
             def convert_df_to_excel(df1, df2):
                 output = io.BytesIO()
-                writer = pd.ExcelWriter(output, engine='xlsxwriter')
-                df1.to_excel(writer, index=False, sheet_name='Classified')
-                df2.to_excel(writer, index=False, sheet_name='Excluded and Non Utilisé')
-                writer.close()
+                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                    df1.to_excel(writer, index=False, sheet_name='Classified')
+                    df2.to_excel(writer, index=False, sheet_name='Excluded and Non Utilisé')
                 output.seek(0)
                 return output
 
