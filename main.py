@@ -66,47 +66,41 @@ def main():
             
             # Classifier les domaines
             classified_domains = []
-            excluded_domains = []
-            non_utilise_domains = []
+            excluded_and_non_utilise_domains = []
             
             for domain in domaines:
                 if excluded_regex.search(domain) or year_regex.search(domain):
-                    excluded_domains.append(domain)
+                    excluded_and_non_utilise_domains.append((domain, 'EXCLU', determine_language(domain)))
                 else:
                     category = classify_domain(domain, thematique_dict)
                     language = determine_language(domain)
                     if category == 'NON UTILISÉ':
-                        non_utilise_domains.append((domain, category, language))
+                        excluded_and_non_utilise_domains.append((domain, category, language))
                     else:
                         classified_domains.append((domain, category, language))
             
             # Créer le DataFrame pour les résultats
             df_classified = pd.DataFrame(classified_domains, columns=['Domain', 'Category', 'Language'])
-            df_excluded = pd.DataFrame(excluded_domains, columns=['Domain'])
-            df_excluded['Category'] = 'EXCLU'
-            df_excluded['Language'] = pd.NA
-            df_non_utilise = pd.DataFrame(non_utilise_domains, columns=['Domain', 'Category', 'Language'])
+            df_excluded_and_non_utilise = pd.DataFrame(excluded_and_non_utilise_domains, columns=['Domain', 'Category', 'Language'])
             
             # Afficher la prévisualisation des résultats
             st.subheader("Prévisualisation des résultats")
             st.write(df_classified)
-            st.write(df_excluded)
-            st.write(df_non_utilise)
+            st.write(df_excluded_and_non_utilise)
             
             # Ajouter une option pour télécharger les résultats
-            def convert_df_to_excel(df1, df2, df3):
+            def convert_df_to_excel(df1, df2):
                 output = io.BytesIO()
                 writer = pd.ExcelWriter(output, engine='xlsxwriter')
                 df1.to_excel(writer, index=False, sheet_name='Classified')
-                df2.to_excel(writer, index=False, sheet_name='Excluded')
-                df3.to_excel(writer, index=False, sheet_name='Non Utilisé')
+                df2.to_excel(writer, index=False, sheet_name='Excluded and Non Utilisé')
                 writer.close()
                 output.seek(0)
                 return output
 
             st.download_button(
                 label="Télécharger les résultats en Excel",
-                data=convert_df_to_excel(df_classified, df_excluded, df_non_utilise),
+                data=convert_df_to_excel(df_classified, df_excluded_and_non_utilise),
                 file_name="domaines_classes_resultats.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
