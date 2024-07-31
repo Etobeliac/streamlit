@@ -18,6 +18,28 @@ thematique_dict = {
     'VEHICULE': ['vehicle', 'car', 'auto', 'bike', 'bicycle', 'moto', 'produits', 'securite', 'voiture']
 }
 
+# Fonction pour déterminer la langue basée sur le TLD
+def determine_language(domain):
+    tld = domain.split('.')[-1]
+    if tld == 'fr':
+        return 'FR'
+    elif tld == 'com':
+        return 'EN'
+    elif tld == 'uk':
+        return 'EN'
+    elif tld == 'de':
+        return 'DE'
+    elif tld == 'es':
+        return 'ES'
+    elif tld == 'it':
+        return 'IT'
+    elif tld == 'ru':
+        return 'RU'
+    elif tld == 'cn':
+        return 'CN'
+    else:
+        return 'EN'  # Par défaut, on considère que c'est en anglais
+
 # Classifier un domaine par thématique
 def classify_domain(domain, categories):
     for category, keywords in categories.items():
@@ -49,12 +71,14 @@ def main():
                     excluded_domains.append(domain)
                 else:
                     category = classify_domain(domain, thematique_dict)
-                    classified_domains.append((domain, category))
+                    language = determine_language(domain)
+                    classified_domains.append((domain, category, language))
             
             # Créer le DataFrame pour les résultats
-            df_classified = pd.DataFrame(classified_domains, columns=['Domain', 'Category'])
+            df_classified = pd.DataFrame(classified_domains, columns=['Domain', 'Category', 'Language'])
             df_excluded = pd.DataFrame(excluded_domains, columns=['Domain'])
             df_excluded['Category'] = 'EXCLU'
+            df_excluded['Language'] = pd.NA
             
             # Afficher la prévisualisation des résultats
             st.subheader("Prévisualisation des résultats")
