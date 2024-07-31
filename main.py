@@ -22,3 +22,8 @@ if selected_script:
     st.code(script_content, language='python')
 else:
     st.subheader("Select a script to view its content")
+
+import os
+
+os.system('streamlit run scripts/classifier.py')
+
