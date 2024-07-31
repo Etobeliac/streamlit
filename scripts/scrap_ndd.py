@@ -1,10 +1,8 @@
 import streamlit as st
-import pandas as pd
-import io
-import os
 
 def app():
     st.title("Classification de Domaines")
+    st.write("Bienvenue dans l'application de classification des domaines.")
 
     # Lecture du fichier de thématiques
     file_path = 'TEMPLATE THEMATIQUES.xlsx'
