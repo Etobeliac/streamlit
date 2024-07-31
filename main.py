@@ -118,23 +118,10 @@ def main():
             classified_domains = []
             excluded_and_non_utilise_domains = []
             
-            # Assurez-vous que le fichier de thématiques est correctement chargé ici
-            # Par exemple, charger le DataFrame à partir d'un fichier Excel (le fichier doit être accessible)
-            try:
-                df = pd.read_excel('/mnt/data/entrainement Script python classification.xlsx', sheet_name='Feuil1')
-            except Exception as e:
-                st.error(f"Erreur lors du chargement du fichier Excel : {e}")
-                return
-            
             for domain in domaines:
                 category = classify_domain(domain, thematique_dict)
                 language = determine_language(domain)
-                comment = ''
-                for index, row in df.iterrows():
-                    if domain == row['Domain']:
-                        comment = row['Commentaire']
-                        break
-                domain_info = analyze_comment(domain, category, comment)
+                domain_info = analyze_comment(domain, category, '')
                 if domain_info[1] == 'EXCLU' or is_name(domain):
                     excluded_and_non_utilise_domains.append((domain_info[0], domain_info[1], language))
                 else:
