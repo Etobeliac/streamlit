@@ -93,11 +93,10 @@ def main():
                 language = determine_language(domain)
                 
                 # Appliquer les règles extraites des commentaires
-                domain_info = analyze_comment(domain, category, '')
-                if domain_info[1] == 'EXCLU'  or is_name(domain):
-                    excluded_and_non_utilise_domains.append((domain_info[0], domain_info[1], language))
+                if any(kw in domain for kw in excluded_keywords) or year_regex.search(domain) or is_name(domain):
+                    excluded_and_non_utilise_domains.append((domain, 'EXCLU', language))
                 else:
-                    classified_domains.append((domain_info[0], domain_info[1], language))
+                    classified_domains.append((domain, category, language))
             
             # Créer le DataFrame pour les résultats
             df_classified = pd.DataFrame(classified_domains, columns=['Domain', 'Category', 'Language'])
@@ -129,4 +128,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
