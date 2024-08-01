@@ -3,24 +3,19 @@ import pandas as pd
 import re
 import io
 import spacy
-import subprocess
-import sys
 
-# Téléchargement des modèles si nécessaire
+# Charger les modèles de langage
 try:
     nlp_fr = spacy.load('fr_core_news_sm')
-except OSError:
-    subprocess.run([sys.executable, "-m", "spacy", "download", "fr_core_news_sm"])
+    nlp_en = spacy.load('en_core_web_sm')
+except IOError:
+    st.warning("Téléchargement des modèles spaCy... Cela peut prendre quelques minutes.")
+    spacy.cli.download("fr_core_news_sm")
+    spacy.cli.download("en_core_web_sm")
     nlp_fr = spacy.load('fr_core_news_sm')
-
-try:
-    nlp_en = spacy.load('en_core_web_sm')
-except OSError:
-    subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
     nlp_en = spacy.load('en_core_web_sm')
 
-# Le reste de votre script
-# Dictionnaire des thématiques et mots-clés (combinaison des anciens et nouveaux)
+# Dictionnaire des thématiques et mots-clés
 thematique_dict = {
     'ANIMAUX': ['animal', 'pet', 'zoo', 'farm', 'deer', 'chiens', 'chats', 'animaux', 'terriers', 'veterinary', 'breed', 'wildlife', 'dog', 'cat', 'bird', 'fish', 'monde marin'],
     'CUISINE': ['cook', 'recipe', 'cuisine', 'food', 'bon plan', 'equipement', 'minceur', 'produit', 'restaurant', 'chef', 'gastronomy', 'dining', 'eatery', 'kitchen', 'bakery', 'catering', 'madeleine', 'plat'],
@@ -35,7 +30,7 @@ thematique_dict = {
     'VEHICULE': ['vehicle', 'car', 'auto', 'bike', 'bicycle', 'moto', 'produits', 'securite', 'voiture', 'formula', 'drive', 'racing', 'garage', 'repair', 'dealership', 'rental', 'taxi', 'bus', 'train', 'plane', 'aviation']
 }
 
-# Mots clés pour exclure des domaines (combinaison des anciens et nouveaux)
+# Mots clés pour exclure des domaines
 excluded_keywords = ['religion', 'sex', 'voyance', 'escort', 'jesus', 'porn', 'teen', 'adult', 'White Pussy', 'Black Cocks', 'youtube', 'instagram', 'pinterest', 'forex', 'trading', 'invest', 'broker', 'stock', 'market', 'finance', 'avocat']
 excluded_regex = re.compile(r'\b(?:%s)\b' % '|'.join(map(re.escape, excluded_keywords)), re.IGNORECASE)
 year_regex = re.compile(r'\b(19[0-9]{2}|20[0-9]{2})\b')
@@ -60,19 +55,16 @@ def classify_domain(domain, categories, nlp):
     for category, keywords in categories.items():
         for keyword in keywords:
             if keyword in domain_lower:
-                # Prioritize certain keywords over others
                 if category == 'SANTE' and 'skincare' in domain_lower:
                     return 'SANTE'
-                # Exclude domains that contain 'land' if 'ecole' is present
                 if category == 'TOURISME' and 'land' in domain_lower and 'ecole' in domain_lower:
                     return 'EXCLU'
                 return category
 
-    # Use semantic similarity
     for token in doc:
         for category, keywords in categories.items():
             for keyword in keywords:
-                if token.similarity(nlp(keyword)) > 0.7:  # Adjust the threshold as needed
+                if token.similarity(nlp(keyword)) > 0.7:
                     return category
 
     return 'NON UTILISÉ'
@@ -84,13 +76,13 @@ def is_excluded(domain):
         return True
     if any(word in domain.lower() for word in ['pas cher', 'bas prix']):
         return True
-    if re.search(r'\b[a-z]+[A-Z][a-z]+\b', domain):  # Noms propres probables
+    if re.search(r'\b[a-z]+[A-Z][a-z]+\b', domain):
         return True
-    if len(domain.split('.')[0]) <= 3:  # Domaines très courts
+    if len(domain.split('.')[0]) <= 3:
         return True
-    if brand_regex.search(domain):  # Marques
+    if brand_regex.search(domain):
         return True
-    if geographic_regex.search(domain):  # Géographique
+    if geographic_regex.search(domain):
         return True
     if publicity_regex.search(domain) and not transport_regex.search(domain):
         return True
