@@ -1,3 +1,5 @@
 streamlit
 pandas
-spacy
+spacy>=3.0.0,<3.1.0
+numpy
+cython
