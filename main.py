@@ -20,7 +20,7 @@ thematique_dict = {
 }
 
 # Mots clés pour exclure des domaines (combinaison des anciens et nouveaux)
-excluded_keywords = ['religion', 'sex', 'voyance', 'escort', 'jesus', 'porn', 'teen', 'adult', 'White Pussy', 'Black Cocks', 'youtube', 'instagram', 'pinterest']
+excluded_keywords = ['religion', 'sex', 'voyance', 'escort', 'jesus', 'porn', 'teen', 'adult', 'White Pussy', 'Black Cocks', 'youtube', 'instagram', 'pinterest', 'forex', 'trading', 'invest', 'broker', 'stock', 'market', 'finance']
 excluded_regex = re.compile(r'\b(?:%s)\b' % '|'.join(map(re.escape, excluded_keywords)), re.IGNORECASE)
 year_regex = re.compile(r'\b(19[0-9]{2}|20[0-9]{2})\b')
 name_regex = re.compile(r'\b[A-Z][a-z]+\s[A-Z][a-z]+\b')
@@ -86,39 +86,39 @@ def main():
             domaines = [domain.strip() for domain in domaines_input.split('\n') if domain.strip()]
 
             classified_domains = []
-            excluded_and_non_utilise_domains = []
+            excluded_domains = []
 
             for domain in domaines:
                 if is_excluded(domain):
-                    excluded_and_non_utilise_domains.append((domain, 'EXCLU', determine_language(domain)))
+                    excluded_domains.append((domain, 'EXCLU', determine_language(domain)))
                 else:
                     category = classify_domain(domain, thematique_dict)
                     language = determine_language(domain)
                     if category == 'NON UTILISÉ' and not has_meaning(domain):
-                        excluded_and_non_utilise_domains.append((domain, 'EXCLU (pas de sens)', language))
+                        excluded_domains.append((domain, 'EXCLU (pas de sens)', language))
                     elif category == 'NON UTILISÉ':
-                        excluded_and_non_utilise_domains.append((domain, category, language))
+                        excluded_domains.append((domain, category, language))
                     else:
                         classified_domains.append((domain, category, language))
 
             df_classified = pd.DataFrame(classified_domains, columns=['Domain', 'Category', 'Language'])
-            df_excluded_and_non_utilise = pd.DataFrame(excluded_and_non_utilise_domains, columns=['Domain', 'Category', 'Language'])
+            df_excluded = pd.DataFrame(excluded_domains, columns=['Domain', 'Category', 'Language'])
 
             st.subheader("Prévisualisation des résultats")
             st.write(df_classified)
-            st.write(df_excluded_and_non_utilise)
+            st.write(df_excluded)
 
             def convert_df_to_excel(df1, df2):
                 output = io.BytesIO()
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                     df1.to_excel(writer, index=False, sheet_name='Classified')
-                    df2.to_excel(writer, index=False, sheet_name='Excluded and Non Utilisé')
+                    df2.to_excel(writer, index=False, sheet_name='Excluded')
                 output.seek(0)
                 return output
 
             st.download_button(
                 label="Télécharger les résultats en Excel",
-                data=convert_df_to_excel(df_classified, df_excluded_and_non_utilise),
+                data=convert_df_to_excel(df_classified, df_excluded),
                 file_name="domaines_classes_resultats.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
