@@ -3,11 +3,23 @@ import pandas as pd
 import re
 import io
 import spacy
+import subprocess
+import sys
 
-# Charger les modèles de langage
-nlp_fr = spacy.load('fr_core_news_sm')
-nlp_en = spacy.load('en_core_web_sm')
+# Téléchargement des modèles si nécessaire
+try:
+    nlp_fr = spacy.load('fr_core_news_sm')
+except OSError:
+    subprocess.run([sys.executable, "-m", "spacy", "download", "fr_core_news_sm"])
+    nlp_fr = spacy.load('fr_core_news_sm')
 
+try:
+    nlp_en = spacy.load('en_core_web_sm')
+except OSError:
+    subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
+    nlp_en = spacy.load('en_core_web_sm')
+
+# Le reste de votre script
 # Dictionnaire des thématiques et mots-clés (combinaison des anciens et nouveaux)
 thematique_dict = {
     'ANIMAUX': ['animal', 'pet', 'zoo', 'farm', 'deer', 'chiens', 'chats', 'animaux', 'terriers', 'veterinary', 'breed', 'wildlife', 'dog', 'cat', 'bird', 'fish', 'monde marin'],
