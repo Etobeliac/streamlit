@@ -5,145 +5,42 @@ import io
 import spacy
 
 # Charger les modèles de langage
-try:
-    nlp_fr = spacy.load('fr_core_news_sm')
-    nlp_en = spacy.load('en_core_web_sm')
-    st.sidebar.success("Modèles de langage chargés avec succès.")
-except Exception as e:
-    st.sidebar.error(f"Erreur lors du chargement des modèles de langage: {e}")
+@st.cache_resource
+def load_spacy_models():
+    try:
+        nlp_fr = spacy.load('fr_core_news_sm')
+        nlp_en = spacy.load('en_core_web_sm')
+        return nlp_fr, nlp_en
+    except Exception as e:
+        st.error(f"Erreur lors du chargement des modèles de langage: {e}")
+        return None, None
 
-# Dictionnaire des thématiques et mots-clés
-thematique_dict = {
-    'ANIMAUX': ['animal', 'pet', 'zoo', 'farm', 'deer', 'chiens', 'chats', 'animaux', 'terriers', 'veterinary', 'breed', 'wildlife', 'dog', 'cat', 'bird', 'fish', 'monde marin'],
-    'CUISINE': ['cook', 'recipe', 'cuisine', 'food', 'bon plan', 'equipement', 'minceur', 'produit', 'restaurant', 'chef', 'gastronomy', 'dining', 'eatery', 'kitchen', 'bakery', 'catering', 'madeleine', 'plat'],
-    'ENTREPRISE': ['business', 'enterprise', 'company', 'corporate', 'formation', 'juridique', 'management', 'marketing', 'services', 'firm', 'industry', 'commerce', 'trade', 'venture', 'market', 'publicity'],
-    'FINANCE / IMMOBILIER': ['finance', 'realestate', 'investment', 'property', 'assurance', 'banque', 'credits', 'immobilier', 'fortune', 'credit', 'money', 'invest', 'mortgage', 'loan', 'tax', 'insurance', 'wealth'],
-    'INFORMATIQUE': ['tech', 'computer', 'software', 'IT', 'high tech', 'internet', 'jeux-video', 'marketing', 'materiel', 'smartphones', 'research', 'graphics', 'solution', 'hardware', 'programming', 'coding', 'digital', 'cyber', 'web', 'hack', 'forum', 'apps', 'digital', 'open media', 'email', 'AI', 'machine learning', 'competence'],
-    'MAISON': ['home', 'house', 'garden', 'interior', 'deco', 'demenagement', 'equipement', 'immo', 'jardin', 'maison', 'piscine', 'travaux', 'solar', 'energy', 'decor', 'furniture', 'property', 'apartment', 'condo', 'villa', '4piecesetplus'],
-    'MODE / FEMME': ['fashion', 'beauty', 'cosmetics', 'woman', 'beaute', 'bien-etre', 'lifestyle', 'mode', 'shopping', 'style', 'clothing', 'accessories', 'women', 'hat', 'jewelry', 'makeup', 'designer', 'boutique', 'shopping', 'runway', 'model'],
-    'SANTE': ['health', 'fitness', 'wellness', 'medical', 'hospital', 'grossesse', 'maladie', 'minceur', 'professionnels', 'sante', 'seniors', 'baby', 'therapy', 'massage', 'biochemie', 'skincare'],
-    'SPORT': ['sport', 'fitness', 'football', 'soccer', 'basketball', 'tennis', 'autre sport', 'basket', 'combat', 'foot', 'musculation', 'velo', 'cricket', 'gym', 'athletic', 'team', 'league', 'club', 'cycling', 'surf', 'trail', 'marathon', 'tango'],
-    'TOURISME': ['travel', 'tourism', 'holiday', 'vacation', 'bon plan', 'camping', 'croisière', 'location', 'tourisme', 'vacance', 'voyage', 'sauna', 'expat', 'visit', 'explore', 'adventure', 'destination', 'hotel', 'resort', 'photo', 'document', 'wave', 'land', 'fries', 'voyage', 'trip', 'journey', 'escape', 'getaway'],
-    'VEHICULE': ['vehicle', 'car', 'auto', 'bike', 'bicycle', 'moto', 'produits', 'securite', 'voiture', 'formula', 'drive', 'racing', 'garage', 'repair', 'dealership', 'rental', 'taxi', 'bus', 'train', 'plane', 'aviation']
-}
+nlp_fr, nlp_en = load_spacy_models()
 
-# Mots clés pour exclure des domaines
-excluded_keywords = ['religion', 'sex', 'voyance', 'escort', 'jesus', 'porn', 'teen', 'adult', 'White Pussy', 'Black Cocks', 'youtube', 'instagram', 'pinterest', 'forex', 'trading', 'invest', 'broker', 'stock', 'market', 'finance', 'avocat']
-excluded_regex = re.compile(r'\b(?:%s)\b' % '|'.join(map(re.escape, excluded_keywords)), re.IGNORECASE)
-year_regex = re.compile(r'\b(19[0-9]{2}|20[0-9]{2})\b')
-name_regex = re.compile(r'\b[A-Z][a-z]+\s[A-Z][a-z]+\b')
-brand_regex = re.compile(r'\b(samsung|atari|longchamp)\b', re.IGNORECASE)
-geographic_regex = re.compile(r'\b(louisville|quercy|france|ferney)\b', re.IGNORECASE)
-publicity_regex = re.compile(r'\bpublicity\b', re.IGNORECASE)
-transport_regex = re.compile(r'\btransport\b', re.IGNORECASE)
+if nlp_fr is None or nlp_en is None:
+    st.error("Impossible de charger les modèles de langage. L'application ne peut pas fonctionner correctement.")
+    st.stop()
 
-def determine_language(domain):
-    tld = domain.split('.')[-1]
-    tld_to_lang = {
-        'fr': 'FR', 'com': 'EN', 'uk': 'EN', 'de': 'DE', 'es': 'ES',
-        'it': 'IT', 'ru': 'RU', 'cn': 'CN', 'net': 'EN', 'org': 'EN'
-    }
-    return tld_to_lang.get(tld, 'EN')
+# Le reste de votre code ici...
 
-def classify_domain(domain, categories, nlp):
-    domain_lower = domain.lower()
-    doc = nlp(domain_lower)
+# Exemple de fonction utilisant spaCy
+def analyze_text(text, lang='fr'):
+    nlp = nlp_fr if lang == 'fr' else nlp_en
+    doc = nlp(text)
+    # Votre logique d'analyse ici
+    return doc
 
-    for category, keywords in categories.items():
-        for keyword in keywords:
-            if keyword in domain_lower:
-                if category == 'SANTE' and 'skincare' in domain_lower:
-                    return 'SANTE'
-                if category == 'TOURISME' and 'land' in domain_lower and 'ecole' in domain_lower:
-                    return 'EXCLU'
-                return category
+# Interface utilisateur Streamlit
+st.title("Analyseur de texte")
 
-    for token in doc:
-        for category, keywords in categories.items():
-            for keyword in keywords:
-                if token.similarity(nlp(keyword)) > 0.7:
-                    return category
+text_input = st.text_area("Entrez votre texte ici:")
+lang_choice = st.radio("Choisissez la langue:", ('Français', 'Anglais'))
 
-    return 'NON UTILISE'
-
-def is_excluded(domain):
-    if excluded_regex.search(domain) or year_regex.search(domain):
-        return True
-    if name_regex.search(domain):
-        return True
-    if any(word in domain.lower() for word in ['pas cher', 'bas prix']):
-        return True
-    if re.search(r'\b[a-z]+[A-Z][a-z]+\b', domain):
-        return True
-    if len(domain.split('.')[0]) <= 3:
-        return True
-    if brand_regex.search(domain):
-        return True
-    if geographic_regex.search(domain):
-        return True
-    if publicity_regex.search(domain) and not transport_regex.search(domain):
-        return True
-    return False
-
-def has_meaning(domain):
-    clean_domain = re.sub(r'\.(com|net|org|info|biz|fr|de|uk|es|it)$', '', domain.lower())
-    clean_domain = ''.join(char for char in clean_domain if char.isalnum())
-    words = re.findall(r'\b\w{3,}\b', clean_domain)
-    return len(words) > 0
-
-def main():
-    st.title("Classification des noms de domaine par thématique")
-
-    domaines_input = st.text_area("Entrez les noms de domaine (un par ligne)")
-
-    if st.button("Analyser"):
-        if domaines_input:
-            domaines = [domain.strip() for domain in domaines_input.split('\n') if domain.strip()]
-
-            classified_domains = []
-            excluded_domains = []
-
-            for domain in domaines:
-                language = determine_language(domain)
-                nlp = nlp_fr if language == 'FR' else nlp_en
-
-                try:
-                    if is_excluded(domain):
-                        excluded_domains.append((domain, 'EXCLU', language))
-                    else:
-                        category = classify_domain(domain, thematique_dict, nlp)
-                        if category == 'NON UTILISE' and not has_meaning(domain):
-                            excluded_domains.append((domain, 'EXCLU (pas de sens)', language))
-                        elif category == 'NON UTILISE':
-                            excluded_domains.append((domain, category, language))
-                        else:
-                            classified_domains.append((domain, category, language))
-                except Exception as e:
-                    st.error(f"Erreur lors de l'analyse du domaine {domain}: {e}")
-
-            df_classified = pd.DataFrame(classified_domains, columns=['Domain', 'Category', 'Language'])
-            df_excluded = pd.DataFrame(excluded_domains, columns=['Domain', 'Category', 'Language'])
-
-            st.subheader("Prévisualisation des résultats")
-            st.write(df_classified)
-            st.write(df_excluded)
-
-            def convert_df_to_excel(df1, df2):
-                output = io.BytesIO()
-                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                    df1.to_excel(writer, index=False, sheet_name='Classified')
-                    df2.to_excel(writer, index=False, sheet_name='Excluded')
-                output.seek(0)
-                return output
-
-            st.download_button(
-                label="Télécharger les résultats en Excel",
-                data=convert_df_to_excel(df_classified, df_excluded),
-                file_name="domaines_classes_resultats.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-        else:
-            st.warning("Veuillez entrer au moins un nom de domaine.")
-
-if __name__ == "__main__":
-    main()
+if st.button("Analyser"):
+    if text_input:
+        lang = 'fr' if lang_choice == 'Français' else 'en'
+        result = analyze_text(text_input, lang)
+        st.write("Analyse terminée !")
+        # Affichez les résultats de l'analyse ici
+    else:
+        st.warning("Veuillez entrer du texte à analyser.")
