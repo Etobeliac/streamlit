@@ -2,11 +2,19 @@ import streamlit as st
 import pandas as pd
 import re
 import io
-import spacy
 
-# Charger les modèles de langage
+try:
+    import spacy
+    spacy_available = True
+except ImportError:
+    spacy_available = False
+    st.error("Impossible d'importer spaCy. Certaines fonctionnalités peuvent ne pas être disponibles.")
+
+# Charger les modèles de langage si spaCy est disponible
 @st.cache_resource
 def load_spacy_models():
+    if not spacy_available:
+        return None, None
     try:
         nlp_fr = spacy.load('fr_core_news_sm')
         nlp_en = spacy.load('en_core_web_sm')
@@ -17,18 +25,15 @@ def load_spacy_models():
 
 nlp_fr, nlp_en = load_spacy_models()
 
-if nlp_fr is None or nlp_en is None:
-    st.error("Impossible de charger les modèles de langage. L'application ne peut pas fonctionner correctement.")
-    st.stop()
-
-# Le reste de votre code ici...
-
-# Exemple de fonction utilisant spaCy
+# Fonction d'analyse de texte
 def analyze_text(text, lang='fr'):
+    if not spacy_available or (nlp_fr is None and nlp_en is None):
+        return "Analyse de texte non disponible en raison de problèmes avec spaCy."
+    
     nlp = nlp_fr if lang == 'fr' else nlp_en
     doc = nlp(text)
     # Votre logique d'analyse ici
-    return doc
+    return f"Analyse effectuée pour le texte : {text[:50]}..."  # exemple de retour
 
 # Interface utilisateur Streamlit
 st.title("Analyseur de texte")
@@ -40,7 +45,12 @@ if st.button("Analyser"):
     if text_input:
         lang = 'fr' if lang_choice == 'Français' else 'en'
         result = analyze_text(text_input, lang)
-        st.write("Analyse terminée !")
-        # Affichez les résultats de l'analyse ici
+        st.write(result)
     else:
         st.warning("Veuillez entrer du texte à analyser.")
+
+# Affichage des informations de débogage
+st.sidebar.title("Informations de débogage")
+st.sidebar.write(f"spaCy disponible : {spacy_available}")
+st.sidebar.write(f"Modèle français chargé : {nlp_fr is not None}")
+st.sidebar.write(f"Modèle anglais chargé : {nlp_en is not None}")
