@@ -1,7 +1,6 @@
-streamlit==1.23.1
-pandas==1.5.3
-spacy==3.5.3
-https://github.com/explosion/spacy-models/releases/download/fr_core_news_sm-3.5.0/fr_core_news_sm-3.5.0-py3-none-any.whl
-https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.5.0/en_core_web_sm-3.5.0-py3-none-any.whl
-numpy==1.23.5
-thinc==8.1.10
+streamlit
+pandas
+spacy==3.0.3
+numpy
+cython
+thinc
