@@ -1,5 +1,4 @@
-streamlit==1.18.1
-pandas==1.5.3
-nltk==3.7
-numpy==1.23.5
-cython==0.29.32
+streamlit
+pandas
+openpyxl
+xlsxwriter
