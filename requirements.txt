@@ -1,6 +1,6 @@
-streamlit
-pandas
-spacy==3.0.3
-numpy
-cython
-thinc
+streamlit==1.18.1
+pandas==1.5.3
+spacy==3.5.0
+numpy==1.23.5
+cython==0.29.32
+thinc==8.1.10
