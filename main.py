@@ -8,7 +8,7 @@ import string
 thematique_dict = {
     'ANIMAUX': ['animal', 'pet', 'zoo', 'farm', 'deer', 'chiens', 'chats', 'animaux', 'terriers', 'veterinary', 'breed', 'wildlife', 'dog', 'cat', 'bird', 'fish'],
     'CUISINE': ['cook', 'recipe', 'cuisine', 'food', 'bon plan', 'equipement', 'minceur', 'produit', 'restaurant', 'chef', 'gastronomy', 'dining', 'eatery', 'kitchen', 'bakery', 'catering'],
-    'ENTREPRISE': ['business', 'enterprise', 'company', 'corporate', 'formation', 'juridique', 'management', 'marketing', 'services', 'firm', 'industry', 'commerce', 'trade', 'venture', 'market'],
+    'ENTREPRISE': ['business', 'enterprise', 'company', 'corporate', 'formation', 'juridique', 'management', 'marketing', 'services', 'firm', 'industry', 'commerce', 'trade', 'venture', 'market', 'publicity'],
     'FINANCE / IMMOBILIER': ['finance', 'realestate', 'investment', 'property', 'assurance', 'banque', 'credits', 'immobilier', 'fortune', 'credit', 'money', 'invest', 'mortgage', 'loan', 'tax', 'insurance', 'wealth'],
     'INFORMATIQUE': ['tech', 'computer', 'software', 'IT', 'high tech', 'internet', 'jeux-video', 'marketing', 'materiel', 'smartphones', 'research', 'graphics', 'solution', 'hardware', 'programming', 'coding', 'digital', 'cyber', 'web', 'hack', 'forum', 'apps', 'digital', 'open media', 'email', 'AI', 'machine learning'],
     'MAISON': ['home', 'house', 'garden', 'interior', 'deco', 'demenagement', 'equipement', 'immo', 'jardin', 'maison', 'piscine', 'travaux', 'solar', 'energy', 'decor', 'furniture', 'property', 'apartment', 'condo', 'villa'],
@@ -26,6 +26,8 @@ year_regex = re.compile(r'\b(19[0-9]{2}|20[0-9]{2})\b')
 name_regex = re.compile(r'\b[A-Z][a-z]+\s[A-Z][a-z]+\b')
 brand_regex = re.compile(r'\b(samsung|atari|longchamp)\b', re.IGNORECASE)
 geographic_regex = re.compile(r'\b(louisville|quercy|france|ferney)\b', re.IGNORECASE)
+publicity_regex = re.compile(r'\bpublicity\b', re.IGNORECASE)
+transport_regex = re.compile(r'\btransport\b', re.IGNORECASE)
 
 def determine_language(domain):
     tld = domain.split('.')[-1]
@@ -43,6 +45,9 @@ def classify_domain(domain, categories):
                 # Prioritize certain keywords over others
                 if category == 'SANTE' and 'skincare' in domain_lower:
                     return 'SANTE'
+                # Exclude domains that contain 'land' if 'ecole' is present
+                if category == 'TOURISME' and 'land' in domain_lower and 'ecole' in domain_lower:
+                    return 'EXCLU'
                 return category
     return 'NON UTILISÉ'
 
@@ -60,6 +65,8 @@ def is_excluded(domain):
     if brand_regex.search(domain):  # Marques
         return True
     if geographic_regex.search(domain):  # Géographique
+        return True
+    if publicity_regex.search(domain) and not transport_regex.search(domain):
         return True
     return False
 
