@@ -2,15 +2,12 @@ import streamlit as st
 import pandas as pd
 import re
 import io
-import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-from sklearn.feature_extraction.text import TfidfVectorizer
+from gensim.models import KeyedVectors
 from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
-# Télécharger les ressources nécessaires de NLTK
-nltk.download('punkt')
-nltk.download('stopwords')
+# Charger le modèle pré-entraîné de Word2Vec de Google News
+word2vec_model = KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin', binary=True)
 
 # Dictionnaire des thématiques et mots-clés (combinaison des anciens et nouveaux)
 thematique_dict = {
@@ -59,17 +56,19 @@ def classify_domain(domain, categories):
                     return 'EXCLU'
                 return category
 
-    # Use semantic similarity with TF-IDF and cosine similarity
-    vectorizer = TfidfVectorizer().fit_transform([domain_lower])
-    vectors = vectorizer.toarray()
-    category_vectors = {}
+    # Use semantic similarity with Word2Vec and cosine similarity
+    domain_vector = np.mean([word2vec_model[word] for word in domain_lower.split() if word in word2vec_model], axis=0)
+    if domain_vector is None:
+        return 'NON UTILISE'
 
+    category_vectors = {}
     for category, keywords in categories.items():
-        category_vector = vectorizer.transform([' '.join(keywords)]).toarray()
-        category_vectors[category] = category_vector
+        category_vector = np.mean([word2vec_model[word] for word in keywords if word in word2vec_model], axis=0)
+        if category_vector is not None:
+            category_vectors[category] = category_vector
 
     for category, category_vector in category_vectors.items():
-        similarity = cosine_similarity(vectors, category_vector)
+        similarity = cosine_similarity([domain_vector], [category_vector])
         if similarity > 0.5:  # Adjust the threshold as needed
             return category
 
