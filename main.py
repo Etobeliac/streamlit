@@ -11,7 +11,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 # Télécharger les ressources nécessaires de NLTK
 nltk.download('punkt')
 nltk.download('stopwords')
-nltk.download('wordnet')
 
 # Dictionnaire des thématiques et mots-clés (combinaison des anciens et nouveaux)
 thematique_dict = {
