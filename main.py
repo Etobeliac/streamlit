@@ -2,7 +2,11 @@ import streamlit as st
 import pandas as pd
 import re
 import io
-import string
+import spacy
+
+# Charger les modèles de langage
+nlp_fr = spacy.load('fr_core_news_sm')
+nlp_en = spacy.load('en_core_web_sm')
 
 # Dictionnaire des thématiques et mots-clés (combinaison des anciens et nouveaux)
 thematique_dict = {
@@ -37,8 +41,10 @@ def determine_language(domain):
     }
     return tld_to_lang.get(tld, 'EN')
 
-def classify_domain(domain, categories):
+def classify_domain(domain, categories, nlp):
     domain_lower = domain.lower()
+    doc = nlp(domain_lower)
+
     for category, keywords in categories.items():
         for keyword in keywords:
             if keyword in domain_lower:
@@ -49,6 +55,14 @@ def classify_domain(domain, categories):
                 if category == 'TOURISME' and 'land' in domain_lower and 'ecole' in domain_lower:
                     return 'EXCLU'
                 return category
+
+    # Use semantic similarity
+    for token in doc:
+        for category, keywords in categories.items():
+            for keyword in keywords:
+                if token.similarity(nlp(keyword)) > 0.7:  # Adjust the threshold as needed
+                    return category
+
     return 'NON UTILISÉ'
 
 def is_excluded(domain):
@@ -89,11 +103,13 @@ def main():
             excluded_domains = []
 
             for domain in domaines:
+                language = determine_language(domain)
+                nlp = nlp_fr if language == 'FR' else nlp_en
+
                 if is_excluded(domain):
-                    excluded_domains.append((domain, 'EXCLU', determine_language(domain)))
+                    excluded_domains.append((domain, 'EXCLU', language))
                 else:
-                    category = classify_domain(domain, thematique_dict)
-                    language = determine_language(domain)
+                    category = classify_domain(domain, thematique_dict, nlp)
                     if category == 'NON UTILISÉ' and not has_meaning(domain):
                         excluded_domains.append((domain, 'EXCLU (pas de sens)', language))
                     elif category == 'NON UTILISÉ':
