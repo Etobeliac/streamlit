@@ -1,6 +1,5 @@
-streamlit==1.18.1
-pandas==1.5.3
-spacy==3.5.0
-numpy==1.23.5
-cython==0.29.32
-thinc==8.1.10
+import streamlit as st
+import pandas as pd
+import re
+import io
+import string
