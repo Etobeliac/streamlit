@@ -2,27 +2,15 @@ import streamlit as st
 import pandas as pd
 import re
 import io
-import spacy
-import subprocess
-import importlib
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
-# Vérifier et installer les modèles de Spacy
-def install_spacy_model(model):
-    try:
-        importlib.import_module(model)
-    except ImportError:
-        subprocess.run(["python", "-m", "spacy", "download", model])
-
-install_spacy_model("fr_core_news_sm")
-install_spacy_model("en_core_web_sm")
-
-# Charger les modèles de langage
-try:
-    nlp_fr = spacy.load('fr_core_news_sm')
-    nlp_en = spacy.load('en_core_web_sm')
-    st.sidebar.success("Modèles de langage chargés avec succès.")
-except Exception as e:
-    st.sidebar.error(f"Erreur lors du chargement des modèles de langage: {e}")
+# Télécharger les ressources nécessaires de NLTK
+nltk.download('punkt')
+nltk.download('stopwords')
 
 # Dictionnaire des thématiques et mots-clés (combinaison des anciens et nouveaux)
 thematique_dict = {
@@ -57,9 +45,8 @@ def determine_language(domain):
     }
     return tld_to_lang.get(tld, 'EN')
 
-def classify_domain(domain, categories, nlp):
+def classify_domain(domain, categories):
     domain_lower = domain.lower()
-    doc = nlp(domain_lower)
 
     for category, keywords in categories.items():
         for keyword in keywords:
@@ -72,12 +59,19 @@ def classify_domain(domain, categories, nlp):
                     return 'EXCLU'
                 return category
 
-    # Use semantic similarity
-    for token in doc:
-        for category, keywords in categories.items():
-            for keyword in keywords:
-                if token.similarity(nlp(keyword)) > 0.7:  # Adjust the threshold as needed
-                    return category
+    # Use semantic similarity with TF-IDF and cosine similarity
+    vectorizer = TfidfVectorizer().fit_transform([domain_lower])
+    vectors = vectorizer.toarray()
+    category_vectors = {}
+
+    for category, keywords in categories.items():
+        category_vector = vectorizer.transform([' '.join(keywords)]).toarray()
+        category_vectors[category] = category_vector
+
+    for category, category_vector in category_vectors.items():
+        similarity = cosine_similarity(vectors, category_vector)
+        if similarity > 0.5:  # Adjust the threshold as needed
+            return category
 
     return 'NON UTILISE'
 
@@ -119,13 +113,12 @@ def main():
 
             for domain in domaines:
                 language = determine_language(domain)
-                nlp = nlp_fr if language == 'FR' else nlp_en
 
                 try:
                     if is_excluded(domain):
                         excluded_domains.append((domain, 'EXCLU', language))
                     else:
-                        category = classify_domain(domain, thematique_dict, nlp)
+                        category = classify_domain(domain, thematique_dict)
                         if category == 'NON UTILISE' and not has_meaning(domain):
                             excluded_domains.append((domain, 'EXCLU (pas de sens)', language))
                         elif category == 'NON UTILISE':
