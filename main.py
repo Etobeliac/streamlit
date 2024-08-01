@@ -2,18 +2,6 @@ import streamlit as st
 import pandas as pd
 import re
 import io
-import spacy
-
-# Charger les modèles de langage
-try:
-    nlp_fr = spacy.load('fr_core_news_sm')
-    nlp_en = spacy.load('en_core_web_sm')
-except IOError:
-    st.warning("Téléchargement des modèles spaCy... Cela peut prendre quelques minutes.")
-    spacy.cli.download("fr_core_news_sm")
-    spacy.cli.download("en_core_web_sm")
-    nlp_fr = spacy.load('fr_core_news_sm')
-    nlp_en = spacy.load('en_core_web_sm')
 
 # Dictionnaire des thématiques et mots-clés
 thematique_dict = {
@@ -30,69 +18,13 @@ thematique_dict = {
     'VEHICULE': ['vehicle', 'car', 'auto', 'bike', 'bicycle', 'moto', 'produits', 'securite', 'voiture', 'formula', 'drive', 'racing', 'garage', 'repair', 'dealership', 'rental', 'taxi', 'bus', 'train', 'plane', 'aviation']
 }
 
-# Mots clés pour exclure des domaines
-excluded_keywords = ['religion', 'sex', 'voyance', 'escort', 'jesus', 'porn', 'teen', 'adult', 'White Pussy', 'Black Cocks', 'youtube', 'instagram', 'pinterest', 'forex', 'trading', 'invest', 'broker', 'stock', 'market', 'finance', 'avocat']
-excluded_regex = re.compile(r'\b(?:%s)\b' % '|'.join(map(re.escape, excluded_keywords)), re.IGNORECASE)
-year_regex = re.compile(r'\b(19[0-9]{2}|20[0-9]{2})\b')
-name_regex = re.compile(r'\b[A-Z][a-z]+\s[A-Z][a-z]+\b')
-brand_regex = re.compile(r'\b(samsung|atari|longchamp)\b', re.IGNORECASE)
-geographic_regex = re.compile(r'\b(louisville|quercy|france|ferney)\b', re.IGNORECASE)
-publicity_regex = re.compile(r'\bpublicity\b', re.IGNORECASE)
-transport_regex = re.compile(r'\btransport\b', re.IGNORECASE)
-
-def determine_language(domain):
-    tld = domain.split('.')[-1]
-    tld_to_lang = {
-        'fr': 'FR', 'com': 'EN', 'uk': 'EN', 'de': 'DE', 'es': 'ES',
-        'it': 'IT', 'ru': 'RU', 'cn': 'CN', 'net': 'EN', 'org': 'EN'
-    }
-    return tld_to_lang.get(tld, 'EN')
-
-def classify_domain(domain, categories, nlp):
+# Fonction simplifiée pour classifier les domaines
+def classify_domain(domain):
     domain_lower = domain.lower()
-    doc = nlp(domain_lower)
-
-    for category, keywords in categories.items():
-        for keyword in keywords:
-            if keyword in domain_lower:
-                if category == 'SANTE' and 'skincare' in domain_lower:
-                    return 'SANTE'
-                if category == 'TOURISME' and 'land' in domain_lower and 'ecole' in domain_lower:
-                    return 'EXCLU'
-                return category
-
-    for token in doc:
-        for category, keywords in categories.items():
-            for keyword in keywords:
-                if token.similarity(nlp(keyword)) > 0.7:
-                    return category
-
+    for category, keywords in thematique_dict.items():
+        if any(keyword in domain_lower for keyword in keywords):
+            return category
     return 'NON UTILISÉ'
-
-def is_excluded(domain):
-    if excluded_regex.search(domain) or year_regex.search(domain):
-        return True
-    if name_regex.search(domain):
-        return True
-    if any(word in domain.lower() for word in ['pas cher', 'bas prix']):
-        return True
-    if re.search(r'\b[a-z]+[A-Z][a-z]+\b', domain):
-        return True
-    if len(domain.split('.')[0]) <= 3:
-        return True
-    if brand_regex.search(domain):
-        return True
-    if geographic_regex.search(domain):
-        return True
-    if publicity_regex.search(domain) and not transport_regex.search(domain):
-        return True
-    return False
-
-def has_meaning(domain):
-    clean_domain = re.sub(r'\.(com|net|org|info|biz|fr|de|uk|es|it)$', '', domain.lower())
-    clean_domain = ''.join(char for char in clean_domain if char.isalnum())
-    words = re.findall(r'\b\w{3,}\b', clean_domain)
-    return len(words) > 0
 
 def main():
     st.title("Classification des noms de domaine par thématique")
@@ -103,42 +35,23 @@ def main():
         if domaines_input:
             domaines = [domain.strip() for domain in domaines_input.split('\n') if domain.strip()]
 
-            classified_domains = []
-            excluded_domains = []
+            classified_domains = [(domain, classify_domain(domain)) for domain in domaines]
 
-            for domain in domaines:
-                language = determine_language(domain)
-                nlp = nlp_fr if language == 'FR' else nlp_en
-
-                if is_excluded(domain):
-                    excluded_domains.append((domain, 'EXCLU', language))
-                else:
-                    category = classify_domain(domain, thematique_dict, nlp)
-                    if category == 'NON UTILISÉ' and not has_meaning(domain):
-                        excluded_domains.append((domain, 'EXCLU (pas de sens)', language))
-                    elif category == 'NON UTILISÉ':
-                        excluded_domains.append((domain, category, language))
-                    else:
-                        classified_domains.append((domain, category, language))
-
-            df_classified = pd.DataFrame(classified_domains, columns=['Domain', 'Category', 'Language'])
-            df_excluded = pd.DataFrame(excluded_domains, columns=['Domain', 'Category', 'Language'])
+            df_classified = pd.DataFrame(classified_domains, columns=['Domain', 'Category'])
 
             st.subheader("Prévisualisation des résultats")
             st.write(df_classified)
-            st.write(df_excluded)
 
-            def convert_df_to_excel(df1, df2):
+            def convert_df_to_excel(df):
                 output = io.BytesIO()
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                    df1.to_excel(writer, index=False, sheet_name='Classified')
-                    df2.to_excel(writer, index=False, sheet_name='Excluded')
+                    df.to_excel(writer, index=False, sheet_name='Classified')
                 output.seek(0)
                 return output
 
             st.download_button(
                 label="Télécharger les résultats en Excel",
-                data=convert_df_to_excel(df_classified, df_excluded),
+                data=convert_df_to_excel(df_classified),
                 file_name="domaines_classes_resultats.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
