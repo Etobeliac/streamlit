@@ -1,7 +1,7 @@
 streamlit
 pandas
-spacy==3.0.3
-numpy
+spacy==3.0.6
+numpy==1.20.3
 cython
 thinc==8.0.3
 fr_core_news_sm @ https://github.com/explosion/spacy-models/releases/download/fr_core_news_sm-3.0.0/fr_core_news_sm-3.0.0.tar.gz
