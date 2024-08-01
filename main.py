@@ -20,10 +20,11 @@ thematique_dict = {
 }
 
 # Mots clés pour exclure des domaines (combinaison des anciens et nouveaux)
-excluded_keywords = ['religion', 'sex', 'voyance', 'escort', 'jesus', 'porn', 'teen', 'adult', 'White Pussy', 'Black Cocks']
+excluded_keywords = ['religion', 'sex', 'voyance', 'escort', 'jesus', 'porn', 'teen', 'adult', 'White Pussy', 'Black Cocks', 'youtube', 'instagram', 'pinterest']
 excluded_regex = re.compile(r'\b(?:%s)\b' % '|'.join(map(re.escape, excluded_keywords)), re.IGNORECASE)
 year_regex = re.compile(r'\b(19[0-9]{2}|20[0-9]{2})\b')
 name_regex = re.compile(r'\b[A-Z][a-z]+\s[A-Z][a-z]+\b')
+brand_regex = re.compile(r'\b(samsung|atari|longchamp)\b', re.IGNORECASE)
 
 def determine_language(domain):
     tld = domain.split('.')[-1]
@@ -51,6 +52,8 @@ def is_excluded(domain):
     if re.search(r'\b[a-z]+[A-Z][a-z]+\b', domain):  # Noms propres probables
         return True
     if len(domain.split('.')[0]) <= 3:  # Domaines très courts
+        return True
+    if brand_regex.search(domain):  # Marques
         return True
     return False
 
