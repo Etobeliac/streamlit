@@ -2,7 +2,16 @@ import streamlit as st
 import pandas as pd
 import re
 import io
-import string
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+# Télécharger les ressources nécessaires de NLTK
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
 
 # Dictionnaire des thématiques et mots-clés (combinaison des anciens et nouveaux)
 thematique_dict = {
@@ -13,9 +22,9 @@ thematique_dict = {
     'INFORMATIQUE': ['tech', 'computer', 'software', 'IT', 'high tech', 'internet', 'jeux-video', 'marketing', 'materiel', 'smartphones', 'research', 'graphics', 'solution', 'hardware', 'programming', 'coding', 'digital', 'cyber', 'web', 'hack', 'forum', 'apps', 'digital', 'open media', 'email', 'AI', 'machine learning', 'competence'],
     'MAISON': ['home', 'house', 'garden', 'interior', 'deco', 'demenagement', 'equipement', 'immo', 'jardin', 'maison', 'piscine', 'travaux', 'solar', 'energy', 'decor', 'furniture', 'property', 'apartment', 'condo', 'villa', '4piecesetplus'],
     'MODE / FEMME': ['fashion', 'beauty', 'cosmetics', 'woman', 'beaute', 'bien-etre', 'lifestyle', 'mode', 'shopping', 'style', 'clothing', 'accessories', 'women', 'hat', 'jewelry', 'makeup', 'designer', 'boutique', 'shopping', 'runway', 'model'],
-    'SANTE': ['health', 'fitness', 'wellness', 'medical', 'hospital', 'grossesse', 'maladie', 'minceur', 'professionnels', 'sante', 'seniors', 'baby', 'therapy', 'massage', 'biochimie', 'skincare'],
+    'SANTE': ['health', 'fitness', 'wellness', 'medical', 'hospital', 'grossesse', 'maladie', 'minceur', 'professionnels', 'sante', 'seniors', 'baby', 'therapy', 'massage', 'biochemie', 'skincare'],
     'SPORT': ['sport', 'fitness', 'football', 'soccer', 'basketball', 'tennis', 'autre sport', 'basket', 'combat', 'foot', 'musculation', 'velo', 'cricket', 'gym', 'athletic', 'team', 'league', 'club', 'cycling', 'surf', 'trail', 'marathon', 'tango'],
-    'TOURISME': ['travel', 'tourism', 'holiday', 'vacation', 'bon plan', 'camping', 'croisiere', 'location', 'tourisme', 'vacance', 'voyage', 'sauna', 'expat', 'visit', 'explore', 'adventure', 'destination', 'hotel', 'resort', 'photo', 'documed', 'wave', 'land', 'fries', 'voyage', 'trip', 'journey', 'escape', 'getaway'],
+    'TOURISME': ['travel', 'tourism', 'holiday', 'vacation', 'bon plan', 'camping', 'croisiere', 'location', 'tourisme', 'vacance', 'voyage', 'sauna', 'expat', 'visit', 'explore', 'adventure', 'destination', 'hotel', 'resort', 'photo', 'document', 'wave', 'land', 'fries', 'voyage', 'trip', 'journey', 'escape', 'getaway'],
     'VEHICULE': ['vehicle', 'car', 'auto', 'bike', 'bicycle', 'moto', 'produits', 'securite', 'voiture', 'formula', 'drive', 'racing', 'garage', 'repair', 'dealership', 'rental', 'taxi', 'bus', 'train', 'plane', 'aviation']
 }
 
@@ -39,6 +48,7 @@ def determine_language(domain):
 
 def classify_domain(domain, categories):
     domain_lower = domain.lower()
+
     for category, keywords in categories.items():
         for keyword in keywords:
             if keyword in domain_lower:
@@ -49,7 +59,22 @@ def classify_domain(domain, categories):
                 if category == 'TOURISME' and 'land' in domain_lower and 'ecole' in domain_lower:
                     return 'EXCLU'
                 return category
-    return 'NON UTILISÉ'
+
+    # Use semantic similarity with TF-IDF and cosine similarity
+    vectorizer = TfidfVectorizer().fit_transform([domain_lower])
+    vectors = vectorizer.toarray()
+    category_vectors = {}
+
+    for category, keywords in categories.items():
+        category_vector = vectorizer.transform([' '.join(keywords)]).toarray()
+        category_vectors[category] = category_vector
+
+    for category, category_vector in category_vectors.items():
+        similarity = cosine_similarity(vectors, category_vector)
+        if similarity > 0.5:  # Adjust the threshold as needed
+            return category
+
+    return 'NON UTILISE'
 
 def is_excluded(domain):
     if excluded_regex.search(domain) or year_regex.search(domain):
@@ -58,13 +83,13 @@ def is_excluded(domain):
         return True
     if any(word in domain.lower() for word in ['pas cher', 'bas prix']):
         return True
-    if re.search(r'\b[a-z]+[A-Z][a-z]+\b', domain):  # Noms propres probables
+    if re.search(r'\b[a-z]+[A-Z][a-z]+\b', domain):  # Probable proper names
         return True
-    if len(domain.split('.')[0]) <= 3:  # Domaines très courts
+    if len(domain.split('.')[0]) <= 3:  # Very short domains
         return True
-    if brand_regex.search(domain):  # Marques
+    if brand_regex.search(domain):  # Brands
         return True
-    if geographic_regex.search(domain):  # Géographique
+    if geographic_regex.search(domain):  # Geographic
         return True
     if publicity_regex.search(domain) and not transport_regex.search(domain):
         return True
@@ -84,22 +109,25 @@ def main():
     if st.button("Analyser"):
         if domaines_input:
             domaines = [domain.strip() for domain in domaines_input.split('\n') if domain.strip()]
-
             classified_domains = []
             excluded_domains = []
 
             for domain in domaines:
-                if is_excluded(domain):
-                    excluded_domains.append((domain, 'EXCLU', determine_language(domain)))
-                else:
-                    category = classify_domain(domain, thematique_dict)
-                    language = determine_language(domain)
-                    if category == 'NON UTILISÉ' and not has_meaning(domain):
-                        excluded_domains.append((domain, 'EXCLU (pas de sens)', language))
-                    elif category == 'NON UTILISÉ':
-                        excluded_domains.append((domain, category, language))
+                language = determine_language(domain)
+
+                try:
+                    if is_excluded(domain):
+                        excluded_domains.append((domain, 'EXCLU', language))
                     else:
-                        classified_domains.append((domain, category, language))
+                        category = classify_domain(domain, thematique_dict)
+                        if category == 'NON UTILISE' and not has_meaning(domain):
+                            excluded_domains.append((domain, 'EXCLU (pas de sens)', language))
+                        elif category == 'NON UTILISE':
+                            excluded_domains.append((domain, category, language))
+                        else:
+                            classified_domains.append((domain, category, language))
+                except Exception as e:
+                    st.error(f"Erreur lors de l'analyse du domaine {domain}: {e}")
 
             df_classified = pd.DataFrame(classified_domains, columns=['Domain', 'Category', 'Language'])
             df_excluded = pd.DataFrame(excluded_domains, columns=['Domain', 'Category', 'Language'])
