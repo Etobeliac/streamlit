@@ -2,7 +2,27 @@ import streamlit as st
 import pandas as pd
 import re
 import io
-import string
+import spacy
+import subprocess
+import importlib
+
+# Vérifier et installer les modèles de Spacy
+def install_spacy_model(model):
+    try:
+        importlib.import_module(model)
+    except ImportError:
+        subprocess.run(["python", "-m", "spacy", "download", model])
+
+install_spacy_model("fr_core_news_sm")
+install_spacy_model("en_core_web_sm")
+
+# Charger les modèles de langage
+try:
+    nlp_fr = spacy.load('fr_core_news_sm')
+    nlp_en = spacy.load('en_core_web_sm')
+    st.sidebar.success("Modèles de langage chargés avec succès.")
+except Exception as e:
+    st.sidebar.error(f"Erreur lors du chargement des modèles de langage: {e}")
 
 # Dictionnaire des thématiques et mots-clés (combinaison des anciens et nouveaux)
 thematique_dict = {
@@ -37,8 +57,10 @@ def determine_language(domain):
     }
     return tld_to_lang.get(tld, 'EN')
 
-def classify_domain(domain, categories):
+def classify_domain(domain, categories, nlp):
     domain_lower = domain.lower()
+    doc = nlp(domain_lower)
+
     for category, keywords in categories.items():
         for keyword in keywords:
             if keyword in domain_lower:
@@ -49,6 +71,14 @@ def classify_domain(domain, categories):
                 if category == 'TOURISME' and 'land' in domain_lower and 'ecole' in domain_lower:
                     return 'EXCLU'
                 return category
+
+    # Use semantic similarity
+    for token in doc:
+        for category, keywords in categories.items():
+            for keyword in keywords:
+                if token.similarity(nlp(keyword)) > 0.7:  # Adjust the threshold as needed
+                    return category
+
     return 'NON UTILISÉ'
 
 def is_excluded(domain):
@@ -89,17 +119,22 @@ def main():
             excluded_domains = []
 
             for domain in domaines:
-                if is_excluded(domain):
-                    excluded_domains.append((domain, 'EXCLU', determine_language(domain)))
-                else:
-                    category = classify_domain(domain, thematique_dict)
-                    language = determine_language(domain)
-                    if category == 'NON UTILISÉ' and not has_meaning(domain):
-                        excluded_domains.append((domain, 'EXCLU (pas de sens)', language))
-                    elif category == 'NON UTILISÉ':
-                        excluded_domains.append((domain, category, language))
+                language = determine_language(domain)
+                nlp = nlp_fr if language == 'FR' else nlp_en
+
+                try:
+                    if is_excluded(domain):
+                        excluded_domains.append((domain, 'EXCLU', language))
                     else:
-                        classified_domains.append((domain, category, language))
+                        category = classify_domain(domain, thematique_dict, nlp)
+                        if category == 'NON UTILISÉ' and not has_meaning(domain):
+                            excluded_domains.append((domain, 'EXCLU (pas de sens)', language))
+                        elif category == 'NON UTILISÉ':
+                            excluded_domains.append((domain, category, language))
+                        else:
+                            classified_domains.append((domain, category, language))
+                except Exception as e:
+                    st.error(f"Erreur lors de l'analyse du domaine {domain}: {e}")
 
             df_classified = pd.DataFrame(classified_domains, columns=['Domain', 'Category', 'Language'])
             df_excluded = pd.DataFrame(excluded_domains, columns=['Domain', 'Category', 'Language'])
