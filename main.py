@@ -13,9 +13,9 @@ thematique_dict = {
     'INFORMATIQUE': ['tech', 'computer', 'software', 'IT', 'high tech', 'internet', 'jeux-video', 'marketing', 'materiel', 'smartphones', 'research', 'graphics', 'solution', 'hardware', 'programming', 'coding', 'digital', 'cyber', 'web', 'hack', 'forum', 'apps', 'digital', 'open media', 'email', 'AI', 'machine learning', 'competence'],
     'MAISON': ['home', 'house', 'garden', 'interior', 'deco', 'demenagement', 'equipement', 'immo', 'jardin', 'maison', 'piscine', 'travaux', 'solar', 'energy', 'decor', 'furniture', 'property', 'apartment', 'condo', 'villa', '4piecesetplus'],
     'MODE / FEMME': ['fashion', 'beauty', 'cosmetics', 'woman', 'beaute', 'bien-etre', 'lifestyle', 'mode', 'shopping', 'style', 'clothing', 'accessories', 'women', 'hat', 'jewelry', 'makeup', 'designer', 'boutique', 'shopping', 'runway', 'model'],
-    'SANTE': ['health', 'fitness', 'wellness', 'medical', 'hospital', 'grossesse', 'maladie', 'minceur', 'professionnels', 'sante', 'seniors', 'baby', 'therapy', 'massage', 'biochemie', 'skincare'],
+    'SANTE': ['health', 'fitness', 'wellness', 'medical', 'hospital', 'grossesse', 'maladie', 'minceur', 'professionnels', 'sante', 'seniors', 'baby', 'therapy', 'massage', 'biochimie', 'skincare'],
     'SPORT': ['sport', 'fitness', 'football', 'soccer', 'basketball', 'tennis', 'autre sport', 'basket', 'combat', 'foot', 'musculation', 'velo', 'cricket', 'gym', 'athletic', 'team', 'league', 'club', 'cycling', 'surf', 'trail', 'marathon', 'tango'],
-    'TOURISME': ['travel', 'tourism', 'holiday', 'vacation', 'bon plan', 'camping', 'croisiere', 'location', 'tourisme', 'vacance', 'voyage', 'sauna', 'expat', 'visit', 'explore', 'adventure', 'destination', 'hotel', 'resort', 'photo', 'document', 'wave', 'land', 'fries', 'voyage', 'trip', 'journey', 'escape', 'getaway'],
+    'TOURISME': ['travel', 'tourism', 'holiday', 'vacation', 'bon plan', 'camping', 'croisiere', 'location', 'tourisme', 'vacance', 'voyage', 'sauna', 'expat', 'visit', 'explore', 'adventure', 'destination', 'hotel', 'resort', 'photo', 'documed', 'wave', 'land', 'fries', 'voyage', 'trip', 'journey', 'escape', 'getaway'],
     'VEHICULE': ['vehicle', 'car', 'auto', 'bike', 'bicycle', 'moto', 'produits', 'securite', 'voiture', 'formula', 'drive', 'racing', 'garage', 'repair', 'dealership', 'rental', 'taxi', 'bus', 'train', 'plane', 'aviation']
 }
 
@@ -68,8 +68,6 @@ def is_excluded(domain):
         return True
     if publicity_regex.search(domain) and not transport_regex.search(domain):
         return True
-    if re.search(r'\d', domain):  # Domaines contenant des nombres
-        return True
     return False
 
 def has_meaning(domain):
@@ -86,25 +84,22 @@ def main():
     if st.button("Analyser"):
         if domaines_input:
             domaines = [domain.strip() for domain in domaines_input.split('\n') if domain.strip()]
+
             classified_domains = []
             excluded_domains = []
 
             for domain in domaines:
-                language = determine_language(domain)
-
-                try:
-                    if is_excluded(domain):
-                        excluded_domains.append((domain, 'EXCLU', language))
+                if is_excluded(domain):
+                    excluded_domains.append((domain, 'EXCLU', determine_language(domain)))
+                else:
+                    category = classify_domain(domain, thematique_dict)
+                    language = determine_language(domain)
+                    if category == 'NON UTILISÉ' and not has_meaning(domain):
+                        excluded_domains.append((domain, 'EXCLU (pas de sens)', language))
+                    elif category == 'NON UTILISÉ':
+                        excluded_domains.append((domain, category, language))
                     else:
-                        category = classify_domain(domain, thematique_dict)
-                        if category == 'NON UTILISÉ' and not has_meaning(domain):
-                            excluded_domains.append((domain, 'EXCLU (pas de sens)', language))
-                        elif category == 'NON UTILISÉ':
-                            excluded_domains.append((domain, category, language))
-                        else:
-                            classified_domains.append((domain, category, language))
-                except Exception as e:
-                    st.error(f"Erreur lors de l'analyse du domaine {domain}: {e}")
+                        classified_domains.append((domain, category, language))
 
             df_classified = pd.DataFrame(classified_domains, columns=['Domain', 'Category', 'Language'])
             df_excluded = pd.DataFrame(excluded_domains, columns=['Domain', 'Category', 'Language'])
