@@ -3,6 +3,18 @@ import pandas as pd
 import re
 import io
 import spacy
+import subprocess
+import importlib
+
+# Vérifier et installer les modèles de Spacy
+def install_spacy_model(model):
+    try:
+        importlib.import_module(model)
+    except ImportError:
+        subprocess.run(["python", "-m", "spacy", "download", model])
+
+install_spacy_model("fr_core_news_sm")
+install_spacy_model("en_core_web_sm")
 
 # Charger les modèles de langage
 try:
