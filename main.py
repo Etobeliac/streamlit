@@ -3,14 +3,16 @@ import pandas as pd
 import re
 import io
 
+st.set_page_config(page_title="Analyseur de texte", page_icon="📝")
+
+spacy_available = False
 try:
     import spacy
     spacy_available = True
-except ImportError:
-    spacy_available = False
-    st.error("Impossible d'importer spaCy. Certaines fonctionnalités peuvent ne pas être disponibles.")
+except ImportError as e:
+    st.error(f"Erreur lors de l'importation de spaCy: {e}")
 
-# Charger les modèles de langage si spaCy est disponible
+# Fonction pour charger les modèles de langage
 @st.cache_resource
 def load_spacy_models():
     if not spacy_available:
@@ -23,7 +25,8 @@ def load_spacy_models():
         st.error(f"Erreur lors du chargement des modèles de langage: {e}")
         return None, None
 
-nlp_fr, nlp_en = load_spacy_models()
+# Chargement des modèles
+nlp_fr, nlp_en = load_spacy_models() if spacy_available else (None, None)
 
 # Fonction d'analyse de texte
 def analyze_text(text, lang='fr'):
