@@ -2,12 +2,7 @@ import streamlit as st
 import pandas as pd
 import re
 import io
-from gensim.models import KeyedVectors
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
-
-# Charger le modèle pré-entraîné de Word2Vec de Google News
-word2vec_model = KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin', binary=True)
+import string
 
 # Dictionnaire des thématiques et mots-clés (combinaison des anciens et nouveaux)
 thematique_dict = {
@@ -44,7 +39,6 @@ def determine_language(domain):
 
 def classify_domain(domain, categories):
     domain_lower = domain.lower()
-
     for category, keywords in categories.items():
         for keyword in keywords:
             if keyword in domain_lower:
@@ -55,24 +49,7 @@ def classify_domain(domain, categories):
                 if category == 'TOURISME' and 'land' in domain_lower and 'ecole' in domain_lower:
                     return 'EXCLU'
                 return category
-
-    # Use semantic similarity with Word2Vec and cosine similarity
-    domain_vector = np.mean([word2vec_model[word] for word in domain_lower.split() if word in word2vec_model], axis=0)
-    if domain_vector is None:
-        return 'NON UTILISE'
-
-    category_vectors = {}
-    for category, keywords in categories.items():
-        category_vector = np.mean([word2vec_model[word] for word in keywords if word in word2vec_model], axis=0)
-        if category_vector is not None:
-            category_vectors[category] = category_vector
-
-    for category, category_vector in category_vectors.items():
-        similarity = cosine_similarity([domain_vector], [category_vector])
-        if similarity > 0.5:  # Adjust the threshold as needed
-            return category
-
-    return 'NON UTILISE'
+    return 'NON UTILISÉ'
 
 def is_excluded(domain):
     if excluded_regex.search(domain) or year_regex.search(domain):
@@ -81,15 +58,17 @@ def is_excluded(domain):
         return True
     if any(word in domain.lower() for word in ['pas cher', 'bas prix']):
         return True
-    if re.search(r'\b[a-z]+[A-Z][a-z]+\b', domain):  # Probable proper names
+    if re.search(r'\b[a-z]+[A-Z][a-z]+\b', domain):  # Noms propres probables
         return True
-    if len(domain.split('.')[0]) <= 3:  # Very short domains
+    if len(domain.split('.')[0]) <= 3:  # Domaines très courts
         return True
-    if brand_regex.search(domain):  # Brands
+    if brand_regex.search(domain):  # Marques
         return True
-    if geographic_regex.search(domain):  # Geographic
+    if geographic_regex.search(domain):  # Géographique
         return True
     if publicity_regex.search(domain) and not transport_regex.search(domain):
+        return True
+    if re.search(r'\d', domain):  # Domaines contenant des nombres
         return True
     return False
 
@@ -118,9 +97,9 @@ def main():
                         excluded_domains.append((domain, 'EXCLU', language))
                     else:
                         category = classify_domain(domain, thematique_dict)
-                        if category == 'NON UTILISE' and not has_meaning(domain):
+                        if category == 'NON UTILISÉ' and not has_meaning(domain):
                             excluded_domains.append((domain, 'EXCLU (pas de sens)', language))
-                        elif category == 'NON UTILISE':
+                        elif category == 'NON UTILISÉ':
                             excluded_domains.append((domain, category, language))
                         else:
                             classified_domains.append((domain, category, language))
